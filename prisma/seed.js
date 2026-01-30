@@ -1,4 +1,5 @@
 const { PrismaClient } = require("@prisma/client");
+const bcrypt = require("bcryptjs");
 
 const prisma = new PrismaClient();
 
@@ -9,23 +10,41 @@ async function main() {
   const adminEmail = "admin@local.test";
   const cashierEmail = "cashier@local.test";
 
+  // default password untuk local dev
+  const adminPassword = "password123";
+  const cashierPassword = "password123";
+
+  const adminHash = await bcrypt.hash(adminPassword, 10);
+  const cashierHash = await bcrypt.hash(cashierPassword, 10);
+
   await prisma.user.upsert({
     where: { email: adminEmail },
-    update: {},
+    update: {
+      // pastikan kalau user sudah ada, hash tetap sinkron (dev friendly)
+      passwordHash: adminHash,
+      role: "ADMIN",
+      name: "Admin",
+    },
     create: {
       name: "Admin",
       email: adminEmail,
       role: "ADMIN",
+      passwordHash: adminHash,
     },
   });
 
   await prisma.user.upsert({
     where: { email: cashierEmail },
-    update: {},
+    update: {
+      passwordHash: cashierHash,
+      role: "CASHIER",
+      name: "Cashier",
+    },
     create: {
       name: "Cashier",
       email: cashierEmail,
       role: "CASHIER",
+      passwordHash: cashierHash,
     },
   });
 
@@ -59,7 +78,9 @@ async function main() {
   console.log("Seed complete.");
   console.log({
     adminEmail,
+    adminPassword,
     cashierEmail,
+    cashierPassword,
     productId: product.id,
   });
 }

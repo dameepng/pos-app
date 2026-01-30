@@ -1,20 +1,31 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
 
 function formatRp(n) {
-  const x = Number(n || 0);
-  return `Rp ${x.toLocaleString("id-ID")}`;
+  return `Rp ${Number(n || 0).toLocaleString("id-ID")}`;
 }
 
 export default function PaymentPanel({ cartItems, total, sale, setSale, onClear }) {
   const [paidAmount, setPaidAmount] = useState("");
   const paidNumber = useMemo(() => Number(paidAmount || 0), [paidAmount]);
 
-  async function createSale() {
-    const body = {
-      items: cartItems.map((it) => ({ productId: it.id, qty: it.qty })),
-    };
+  const [busy, setBusy] = useState(false);
+
+  const [midtransUrl, setMidtransUrl] = useState(null);
+  const [midtransOrderId, setMidtransOrderId] = useState(null);
+  const [midtransGrossAmount, setMidtransGrossAmount] = useState(null);
+
+  const [pollSaleId, setPollSaleId] = useState(null);
+
+  async function createSaleIfNeeded() {
+    if (sale?.saleId) return sale;
+
+    const body = { items: cartItems.map((it) => ({ productId: it.id, qty: it.qty })) };
 
     const res = await fetch("/api/sales", {
       method: "POST",
@@ -24,30 +35,26 @@ export default function PaymentPanel({ cartItems, total, sale, setSale, onClear 
 
     const json = await res.json();
     if (!res.ok) throw new Error(json.error?.message || "Failed create sale");
+
+    setSale(json.data);
     return json.data;
   }
 
+  function resetPaymentState() {
+    setMidtransUrl(null);
+    setMidtransOrderId(null);
+    setMidtransGrossAmount(null);
+    setPollSaleId(null);
+  }
+
   async function payCash() {
-    if (cartItems.length === 0) {
-      alert("Cart kosong");
-      return;
-    }
-    if (!Number.isFinite(paidNumber) || paidNumber <= 0) {
-      alert("Masukkan uang diterima yang valid");
-      return;
-    }
-    if (paidNumber < total) {
-      alert("Uang diterima kurang dari total");
-      return;
-    }
+    if (cartItems.length === 0) return alert("Cart kosong");
+    if (!Number.isFinite(paidNumber) || paidNumber <= 0) return alert("Masukkan uang diterima yang valid");
+    if (paidNumber < total) return alert("Uang diterima kurang dari total");
 
-    let currentSale = sale;
-
+    setBusy(true);
     try {
-      if (!currentSale) {
-        currentSale = await createSale();
-        setSale(currentSale);
-      }
+      const currentSale = await createSaleIfNeeded();
 
       const res = await fetch(`/api/sales/${currentSale.saleId}/pay-cash`, {
         method: "POST",
@@ -61,54 +68,164 @@ export default function PaymentPanel({ cartItems, total, sale, setSale, onClear 
       alert(`Pembayaran sukses. Kembalian: ${formatRp(json.data.change)}`);
       onClear();
       setPaidAmount("");
+      resetPaymentState();
     } catch (e) {
       alert(e.message || "Error");
+    } finally {
+      setBusy(false);
     }
   }
 
+  async function payMidtrans() {
+    if (cartItems.length === 0) return alert("Cart kosong");
+
+    setBusy(true);
+    try {
+      const currentSale = await createSaleIfNeeded();
+
+      const res = await fetch(`/api/sales/${currentSale.saleId}/pay-qris`, { method: "POST" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error?.message || "Failed create Midtrans payment");
+
+      const url = json.data.qrisUrl || json.data.redirectUrl || json.data.redirect_url;
+      if (!url) throw new Error("Midtrans redirect_url tidak ditemukan di response");
+
+      const orderId = json.data.providerRef || json.data.orderId || json.data.order_id;
+      if (!orderId) throw new Error("providerRef/orderId tidak ditemukan di response");
+
+      setMidtransUrl(url);
+      setMidtransOrderId(orderId);
+      setMidtransGrossAmount(total);
+      setPollSaleId(currentSale.saleId);
+
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch (e) {
+      alert(e.message || "Error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function simulateSettlement() {
+    if (!midtransOrderId || !midtransGrossAmount) {
+      alert("Jalankan Pay QRIS (Midtrans) dulu.");
+      return;
+    }
+
+    setBusy(true);
+    try {
+      const res = await fetch("/api/dev/simulate-midtrans", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId: midtransOrderId, grossAmount: midtransGrossAmount }),
+      });
+
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error?.message || "Simulate settlement failed");
+
+      alert("Simulator settlement sukses.");
+    } catch (e) {
+      alert(e.message || "Error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function poll() {
+      if (!pollSaleId) return;
+
+      for (let i = 0; i < 60; i++) {
+        if (cancelled) return;
+
+        const res = await fetch(`/api/sales/${pollSaleId}`);
+        const json = await res.json();
+
+        if (res.ok && json.data?.status === "PAID") {
+          alert("Pembayaran terkonfirmasi. Sale PAID.");
+          onClear();
+          setPaidAmount("");
+          resetPaymentState();
+          return;
+        }
+
+        await sleep(2000);
+      }
+    }
+
+    poll();
+    return () => {
+      cancelled = true;
+    };
+  }, [pollSaleId, onClear]);
+
+  const change = Math.max(0, paidNumber - total);
+
   return (
-    <div>
-      <h2 className="text-base font-semibold">Payment</h2>
-      <div className="mt-2 text-sm text-zinc-600">
-        Total: <span className="font-semibold text-zinc-900">{formatRp(total)}</span>
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="text-sm text-zinc-600">Total</div>
+        <div className="text-sm font-semibold">{formatRp(total)}</div>
       </div>
 
-      <div className="mt-3">
+      <div>
         <label className="text-xs text-zinc-500">Cash received</label>
         <input
           type="number"
           value={paidAmount}
           onChange={(e) => setPaidAmount(e.target.value)}
           placeholder="Contoh: 20000"
-          className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
+          className="mt-1 w-full rounded-xl border px-3 py-2 text-sm"
+          disabled={busy}
         />
-        {paidNumber > 0 && (
-          <div className="mt-2 text-sm">
-            Change:{" "}
-            <span className="font-semibold">
-              {formatRp(Math.max(0, paidNumber - total))}
-            </span>
-          </div>
-        )}
+        <div className="mt-2 flex items-center justify-between text-sm">
+          <span className="text-zinc-500">Change</span>
+          <span className="font-semibold">{formatRp(change)}</span>
+        </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-2">
         <button
           onClick={payCash}
-          className="rounded-lg bg-zinc-900 text-white px-3 py-2 text-sm hover:bg-zinc-800 disabled:opacity-50"
-          disabled={cartItems.length === 0}
+          disabled={busy || cartItems.length === 0}
+          className="rounded-xl bg-zinc-900 text-white px-3 py-2 text-sm hover:bg-zinc-800 disabled:opacity-50"
         >
           Pay Cash
         </button>
 
         <button
-          disabled
-          className="rounded-lg border px-3 py-2 text-sm text-zinc-400"
-          title="Next phase"
+          onClick={payMidtrans}
+          disabled={busy || cartItems.length === 0}
+          className="rounded-xl border px-3 py-2 text-sm hover:bg-zinc-50 disabled:opacity-50"
         >
-          Pay QRIS
+          Pay QRIS (Midtrans)
         </button>
       </div>
+
+      {process.env.NODE_ENV !== "production" && (
+        <button
+          onClick={simulateSettlement}
+          disabled={busy || !midtransOrderId}
+          className="w-full rounded-xl border px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
+          title="Dev only"
+        >
+          DEV: Simulate Settlement
+        </button>
+      )}
+
+      {midtransUrl && (
+        <div className="rounded-xl border bg-zinc-50 p-3 text-xs text-zinc-700">
+          <div className="font-medium">Midtrans Payment</div>
+          <div className="mt-1 break-all">
+            OrderId: <span className="font-semibold">{midtransOrderId}</span>
+          </div>
+          <a className="mt-2 inline-block underline" href={midtransUrl} target="_blank" rel="noreferrer">
+            Open payment page
+          </a>
+        </div>
+      )}
     </div>
   );
 }

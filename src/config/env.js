@@ -6,6 +6,9 @@ export const env = {
   MIDTRANS_SERVER_KEY: process.env.MIDTRANS_SERVER_KEY,
   MIDTRANS_CLIENT_KEY: process.env.MIDTRANS_CLIENT_KEY,
   MIDTRANS_IS_PRODUCTION: process.env.MIDTRANS_IS_PRODUCTION === "true",
+
+  AUTH_JWT_SECRET: process.env.AUTH_JWT_SECRET || "",
+  AUTH_COOKIE_NAME: process.env.AUTH_COOKIE_NAME || "pos_session",
 };
 
 export function validateEnv() {
