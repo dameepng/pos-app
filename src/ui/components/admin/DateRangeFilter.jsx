@@ -7,6 +7,7 @@ export default function DateRangeFilter({
   startDate,
   endDate,
   onChange,
+  onPeriodChange, // ✅ tambah
   loading,
 }) {
   const [localStart, setLocalStart] = useState(startDate);
@@ -19,6 +20,7 @@ export default function DateRangeFilter({
   const presets = [
     {
       label: "Hari Ini",
+      period: "today", // ✅ ganti dari 7days
       getValue: () => {
         const today = new Date().toISOString().split("T")[0];
         return { start: today, end: today };
@@ -26,6 +28,7 @@ export default function DateRangeFilter({
     },
     {
       label: "7 Hari Terakhir",
+      period: "7days",
       getValue: () => {
         const end = new Date();
         const start = new Date();
@@ -38,6 +41,7 @@ export default function DateRangeFilter({
     },
     {
       label: "30 Hari Terakhir",
+      period: "30days",
       getValue: () => {
         const end = new Date();
         const start = new Date();
@@ -49,13 +53,15 @@ export default function DateRangeFilter({
       },
     },
     {
-      label: "Bulan Ini",
+      label: "1 Tahun Terakhir",
+      period: "1year",
       getValue: () => {
-        const now = new Date();
-        const start = new Date(now.getFullYear(), now.getMonth(), 1);
+        const end = new Date();
+        const start = new Date();
+        start.setFullYear(start.getFullYear() - 1);
         return {
           start: start.toISOString().split("T")[0],
-          end: now.toISOString().split("T")[0],
+          end: end.toISOString().split("T")[0],
         };
       },
     },
@@ -65,6 +71,8 @@ export default function DateRangeFilter({
     const { start, end } = preset.getValue();
     setLocalStart(start);
     setLocalEnd(end);
+    // ✅ update period di parent
+    onPeriodChange?.(preset.period);
     onChange(start, end);
   };
 

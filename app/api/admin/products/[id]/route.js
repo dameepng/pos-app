@@ -66,6 +66,45 @@ export async function PUT(req, { params }) {
   }
 }
 
+export async function PATCH(req, { params }) {
+  try {
+    await requireRole(["ADMIN"]);
+
+    const { id } = await params;
+    const body = await req.json();
+
+    // hanya update field yang dikirim
+    const dataUpdate = {};
+
+    if ("isActive" in body) {
+      dataUpdate.isActive = body.isActive;
+    }
+
+    // inventory hanya kalau qtyOnHand dikirim
+    if ("qtyOnHand" in body) {
+      const qty = Number(body.qtyOnHand || 0);
+
+      dataUpdate.inventory = {
+        upsert: {
+          create: { qtyOnHand: qty },
+          update: { qtyOnHand: qty },
+        },
+      };
+    }
+
+    const data = await prisma.product.update({
+      where: { id },
+      data: dataUpdate,
+      include: { category: true, inventory: true },
+    });
+
+    return Response.json({ data }, { status: 200 });
+  } catch (err) {
+    return toHttpResponse(err);
+  }
+}
+
+
 export async function DELETE(req, { params }) {
   try {
     await requireRole(["ADMIN"]);

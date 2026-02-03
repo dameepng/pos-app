@@ -6,7 +6,7 @@ function formatRp(n) {
   return `Rp ${Number(n || 0).toLocaleString("id-ID")}`;
 }
 
-export default function ProductSearch({ onSelect, categoryId }) {
+export default function ProductSearch({ onSelect, categoryId, refreshKey }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -78,7 +78,7 @@ export default function ProductSearch({ onSelect, categoryId }) {
       active = false;
       clearTimeout(t);
     };
-  }, [query, canSearch, categoryId]);
+  }, [query, canSearch, categoryId, refreshKey]);
 
   return (
     <div>

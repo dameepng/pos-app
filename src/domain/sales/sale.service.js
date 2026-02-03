@@ -190,9 +190,86 @@ export async function getDailyReport({ cashierId }) {
 
 // ... existing functions ...
 
-// ✅ Fungsi baru untuk Admin Sales Report (dengan date range)
-export async function getSalesReport({ startDate, endDate }) {
-  // Parse dates
+// // ✅ Fungsi baru untuk Admin Sales Report (dengan date range)
+// export async function getSalesReport({ startDate, endDate }) {
+//   // Parse dates
+//   const start = new Date(startDate);
+//   start.setHours(0, 0, 0, 0);
+
+//   const end = new Date(endDate);
+//   end.setHours(23, 59, 59, 999);
+
+//   const where = {
+//     createdAt: {
+//       gte: start,
+//       lte: end,
+//     },
+//     status: {
+//       not: "CANCELLED",
+//     },
+//   };
+
+//   // Get all sales in date range
+//   const sales = await prisma.sale.findMany({
+//     where,
+//     include: {
+//       items: {
+//         include: {
+//           product: {
+//             select: { name: true },
+//           },
+//         },
+//       },
+//       payments: true,
+//       cashier: {
+//         select: {
+//           email: true,
+//           name: true,
+//         },
+//       },
+//     },
+//     orderBy: { createdAt: "desc" },
+//   });
+
+//   // Calculate summary
+//   const summary = {
+//     totalSales: sales.length,
+//     totalRevenue: sales.reduce((sum, s) => sum + s.total, 0),
+//     cashRevenue: 0,
+//     cashCount: 0,
+//     midtransRevenue: 0,
+//     midtransCount: 0,
+//   };
+
+//   // Group by payment method
+//   for (const sale of sales) {
+//     for (const payment of sale.payments) {
+//       if (payment.method === "CASH") {
+//         summary.cashRevenue += payment.amount;
+//         summary.cashCount++;
+//       } else if (payment.method === "QRIS") {
+//         summary.midtransRevenue += payment.amount;
+//         summary.midtransCount++;
+//       }
+//     }
+//   }
+
+//   return {
+//     summary,
+//     sales: sales.map((sale) => ({
+//       id: sale.id,
+//       createdAt: sale.createdAt,
+//       total: sale.total,
+//       status: sale.status,
+//       items: sale.items,
+//       paymentMethod: sale.payments[0]?.method || "N/A",
+//       totalAmount: sale.total,
+//       cashier: sale.cashier,
+//     })),
+//   };
+// }
+
+export async function getSalesReport({ startDate, endDate, period = "7days" }) {
   const start = new Date(startDate);
   start.setHours(0, 0, 0, 0);
 
@@ -200,38 +277,24 @@ export async function getSalesReport({ startDate, endDate }) {
   end.setHours(23, 59, 59, 999);
 
   const where = {
-    createdAt: {
-      gte: start,
-      lte: end,
-    },
-    status: {
-      not: "CANCELLED",
-    },
+    createdAt: { gte: start, lte: end },
+    status: { not: "CANCELLED" },
   };
 
-  // Get all sales in date range
   const sales = await prisma.sale.findMany({
     where,
     include: {
       items: {
         include: {
-          product: {
-            select: { name: true },
-          },
+          product: { select: { name: true } },
         },
       },
       payments: true,
-      cashier: {
-        select: {
-          email: true,
-          name: true,
-        },
-      },
+      cashier: { select: { email: true, name: true } },
     },
     orderBy: { createdAt: "desc" },
   });
 
-  // Calculate summary
   const summary = {
     totalSales: sales.length,
     totalRevenue: sales.reduce((sum, s) => sum + s.total, 0),
@@ -241,7 +304,6 @@ export async function getSalesReport({ startDate, endDate }) {
     midtransCount: 0,
   };
 
-  // Group by payment method
   for (const sale of sales) {
     for (const payment of sale.payments) {
       if (payment.method === "CASH") {
@@ -253,6 +315,58 @@ export async function getSalesReport({ startDate, endDate }) {
       }
     }
   }
+
+  // --- chartData generation ---
+  const chartMap = new Map();
+
+  const idDay = (d) =>
+    d.toLocaleDateString("id-ID", { day: "2-digit", month: "2-digit" }); // "03/02"
+  const idWeekday = (d) =>
+    d.toLocaleDateString("id-ID", { weekday: "short" }); // "Sen"
+  const idMonth = (d) =>
+    d.toLocaleDateString("id-ID", { month: "short" }); // "Jan"
+
+  for (const sale of sales) {
+    const dt = new Date(sale.createdAt);
+
+    let key;
+    let date;
+    let label;
+
+    if (period === "1year") {
+      // group by month
+      key = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`;
+      date = idMonth(dt);
+      label = dt.toLocaleDateString("id-ID", { month: "long", year: "numeric" });
+    } else {
+      // group by day (7days / 30days / custom range)
+      key = dt.toISOString().slice(0, 10); // YYYY-MM-DD
+      date = period === "7days" ? idWeekday(dt) : idDay(dt);
+      label = dt.toLocaleDateString("id-ID", {
+        weekday: period === "7days" ? "long" : undefined,
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      });
+    }
+
+    const prev = chartMap.get(key) || {
+      date,
+      label,
+      revenue: 0,
+      transactions: 0,
+    };
+
+    prev.revenue += Number(sale.total || 0);
+    prev.transactions += 1;
+
+    chartMap.set(key, prev);
+  }
+
+  // sort chronological
+  const chartData = Array.from(chartMap.entries())
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([, v]) => v);
 
   return {
     summary,
@@ -266,5 +380,6 @@ export async function getSalesReport({ startDate, endDate }) {
       totalAmount: sale.total,
       cashier: sale.cashier,
     })),
+    chartData,
   };
 }

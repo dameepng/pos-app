@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, Fragment } from "react";
-import { Clock, ChevronDown, ChevronUp, Package } from "lucide-react";
+import { Clock, ChevronDown, ChevronUp, Package, Calendar } from "lucide-react";
 
 function formatRp(n) {
   return `Rp ${Number(n || 0).toLocaleString("id-ID")}`;
@@ -11,6 +11,15 @@ function formatTime(dateString) {
   return new Date(dateString).toLocaleTimeString("id-ID", {
     hour: "2-digit",
     minute: "2-digit",
+  });
+}
+
+// ✅ Format tanggal lengkap
+function formatDate(dateString) {
+  return new Date(dateString).toLocaleDateString("id-ID", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
   });
 }
 
@@ -46,7 +55,7 @@ export default function SalesTable({ sales }) {
               {/* Expand column */}
             </th>
             <th className="px-5 py-3 text-left text-xs font-semibold text-zinc-600">
-              Waktu
+              Tanggal & Waktu {/* ✅ Update header */}
             </th>
             <th className="px-5 py-3 text-left text-xs font-semibold text-zinc-600">
               ID Transaksi
@@ -87,10 +96,17 @@ export default function SalesTable({ sales }) {
                       )}
                     </button>
                   </td>
-                  <td className="px-5 py-4 text-sm text-zinc-600">
-                    <div className="flex items-center gap-2">
-                      <Clock size={14} className="text-zinc-400" />
-                      {formatTime(sale.createdAt)}
+                  {/* ✅ Tanggal & Waktu dengan styling lebih baik */}
+                  <td className="px-5 py-4">
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2 text-sm font-medium text-zinc-900">
+                        <Calendar size={14} className="text-zinc-400" />
+                        {formatDate(sale.createdAt)}
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-zinc-500">
+                        <Clock size={12} className="text-zinc-400" />
+                        {formatTime(sale.createdAt)}
+                      </div>
                     </div>
                   </td>
                   <td className="px-5 py-4">

@@ -6,6 +6,7 @@ import ReportSummary from "@/ui/components/pos/ReportSummary";
 import SalesTable from "@/ui/components/pos/SalesTable";
 import DateRangeFilter from "@/ui/components/admin/DateRangeFilter";
 import { exportToCSV } from "@/lib/utils/exportCsv"; // ✅ Import
+import SalesChart from "@/ui/components/admin/SalesChart";
 
 function formatRp(n) {
   return `Rp ${Number(n || 0).toLocaleString("id-ID")}`;
@@ -25,6 +26,8 @@ export default function ReportsAdminPage() {
   const [report, setReport] = useState(null);
   const [sales, setSales] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [period, setPeriod] = useState("today"); // '7days', '30days', '1year'
+  const [chartData, setChartData] = useState([]);
   const [dateRange, setDateRange] = useState({
     startDate: new Date().toISOString().split("T")[0],
     endDate: new Date().toISOString().split("T")[0],
@@ -36,18 +39,20 @@ export default function ReportsAdminPage() {
       const params = new URLSearchParams({
         startDate: dateRange.startDate,
         endDate: dateRange.endDate,
+        period: period, // ✅ Add period
       });
 
       const res = await fetch(`/api/admin/reports/sales?${params}`);
 
       if (!res.ok) {
         console.error("API Error:", res.status, res.statusText);
-        throw new Error(`HTTP ${res.status}`);
+        throw new Error(`HTTP ${res.status}`); // ✅ Tambah tanda kurung (
       }
 
       const json = await res.json();
       setReport(json.data.summary);
       setSales(json.data.sales || []);
+      setChartData(json.data.chartData || []); // ✅ Set chart data
     } catch (err) {
       console.error("Failed to load report:", err);
       setReport({
@@ -66,7 +71,7 @@ export default function ReportsAdminPage() {
 
   useEffect(() => {
     fetchReport();
-  }, [dateRange]);
+  }, [dateRange, period]);
 
   const handleDateRangeChange = (start, end) => {
     setDateRange({ startDate: start, endDate: end });
@@ -172,8 +177,11 @@ export default function ReportsAdminPage() {
           startDate={dateRange.startDate}
           endDate={dateRange.endDate}
           onChange={handleDateRangeChange}
+          onPeriodChange={setPeriod}
           loading={loading}
         />
+
+        <SalesChart data={chartData} period={period} />
 
         {/* Summary Cards */}
         <ReportSummary report={report} />

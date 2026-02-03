@@ -50,6 +50,12 @@ export default function PosPage() {
     [cartItems],
   );
 
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  function refreshProducts() {
+    setRefreshKey((k) => k + 1);
+  }
+
   return (
     <div className="min-h-screen">
       {/* Main */}
@@ -79,6 +85,7 @@ export default function PosPage() {
               <ProductSearch
                 onSelect={addToCart}
                 categoryId={selectedCategory}
+                refreshKey={refreshKey}
               />
             </div>
           </div>
@@ -117,6 +124,7 @@ export default function PosPage() {
                   sale={sale}
                   setSale={setSale}
                   onClear={clearCart}
+                  onPaidSuccess={refreshProducts}
                 />
               </div>
             </div>

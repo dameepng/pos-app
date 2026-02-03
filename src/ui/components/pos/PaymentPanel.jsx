@@ -16,6 +16,7 @@ export default function PaymentPanel({
   sale,
   setSale,
   onClear,
+  onPaidSuccess,
 }) {
   const [paidAmount, setPaidAmount] = useState("");
   const paidNumber = useMemo(() => Number(paidAmount || 0), [paidAmount]);
@@ -76,6 +77,7 @@ export default function PaymentPanel({
 
       alert(`Pembayaran sukses. Kembalian: ${formatRp(json.data.change)}`);
       onClear();
+      onPaidSuccess?.();
       setPaidAmount("");
       resetPaymentState();
     } catch (e) {
@@ -168,6 +170,7 @@ export default function PaymentPanel({
         if (res.ok && json.data?.status === "PAID") {
           alert("Pembayaran terkonfirmasi. Sale PAID.");
           onClear();
+          onPaidSuccess?.();
           setPaidAmount("");
           resetPaymentState();
           return;
