@@ -17,6 +17,7 @@ export default function PaymentPanel({
   setSale,
   onClear,
   onPaidSuccess,
+  customerName,
 }) {
   const [paidAmount, setPaidAmount] = useState("");
   const paidNumber = useMemo(() => Number(paidAmount || 0), [paidAmount]);
@@ -32,8 +33,10 @@ export default function PaymentPanel({
   async function createSaleIfNeeded() {
     if (sale?.saleId) return sale;
 
+    const cleanCustomerName = String(customerName || "").trim();
     const body = {
       items: cartItems.map((it) => ({ productId: it.id, qty: it.qty })),
+      customerName: cleanCustomerName || null,
     };
 
     const res = await fetch("/api/sales", {

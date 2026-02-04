@@ -10,6 +10,7 @@ export async function POST(req) {
     // 2. Parse body
     const body = await req.json();
     const items = body?.items;
+    const customerName = body?.customerName;
 
     // 3. CashierId otomatis dari session user
     const cashierId = user.id;
@@ -18,6 +19,7 @@ export async function POST(req) {
     const data = await createSale({
       cashierId,
       items,
+      customerName,
     });
 
     return Response.json({ data }, { status: 201 });

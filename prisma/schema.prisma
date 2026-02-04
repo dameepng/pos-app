@@ -110,6 +110,7 @@ model Inventory {
 model Sale {
   id        String     @id @default(cuid())
   cashierId String
+  customerName String?
 
   status    SaleStatus @default(PENDING)
   total     Int        @default(0)

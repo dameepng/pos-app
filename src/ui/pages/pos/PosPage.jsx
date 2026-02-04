@@ -10,6 +10,7 @@ export default function PosPage() {
   const [cartItems, setCartItems] = useState([]);
   const [sale, setSale] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [customerName, setCustomerName] = useState("");
 
   function addToCart(product) {
     setCartItems((prev) => {
@@ -43,6 +44,7 @@ export default function PosPage() {
   function clearCart() {
     setCartItems([]);
     setSale(null);
+    setCustomerName("");
   }
 
   const total = useMemo(
@@ -103,6 +105,25 @@ export default function PosPage() {
               </div>
 
               <div className="p-4">
+                <div className="mb-4">
+                  <label
+                    htmlFor="customerName"
+                    className="text-xs font-medium text-zinc-700"
+                  >
+                    Nama Customer (Opsional)
+                  </label>
+                  <input
+                    id="customerName"
+                    type="text"
+                    placeholder="Contoh: Budi Santoso"
+                    className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-zinc-400"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                  />
+                  <p className="mt-1 text-[11px] text-zinc-500">
+                    Isi hanya untuk transaksi penting atau jumlah besar.
+                  </p>
+                </div>
                 <Cart
                   items={cartItems}
                   total={total}
@@ -125,6 +146,7 @@ export default function PosPage() {
                   setSale={setSale}
                   onClear={clearCart}
                   onPaidSuccess={refreshProducts}
+                  customerName={customerName}
                 />
               </div>
             </div>

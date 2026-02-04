@@ -1,9 +1,15 @@
 import { prisma } from "../prisma/client.js";
 
-export async function createSaleWithItems({ cashierId, total, saleItems }) {
+export async function createSaleWithItems({
+  cashierId,
+  total,
+  saleItems,
+  customerName,
+}) {
   return prisma.sale.create({
     data: {
       cashierId,
+      customerName: customerName || null,
       status: "PENDING",
       total,
       items: {

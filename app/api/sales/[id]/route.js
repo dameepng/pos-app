@@ -46,6 +46,7 @@ export async function GET(req) {
           status: sale.status,
           total: sale.total,
           createdAt: sale.createdAt,
+          customerName: sale.customerName,
           cashier: sale.cashier,
           items: sale.items.map((it) => ({
             productId: it.productId,

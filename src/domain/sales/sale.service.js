@@ -28,7 +28,7 @@ function normalizeItems(items) {
   return Array.from(map.entries()).map(([productId, qty]) => ({ productId, qty }));
 }
 
-export async function createSale({ cashierId, items }) {
+export async function createSale({ cashierId, items, customerName }) {
   if (!Array.isArray(items) || items.length === 0) {
     throw new AppError(
       ERROR_CODES.VALIDATION_ERROR,
@@ -93,11 +93,13 @@ export async function createSale({ cashierId, items }) {
     cashierId,
     total,
     saleItems,
+    customerName: String(customerName || "").trim() || null,
   });
 
   return {
     saleId: sale.id,
     status: sale.status,
+    customerName: sale.customerName,
     total: sale.total,
     createdAt: sale.createdAt,
     items: sale.items.map((it) => ({
@@ -180,6 +182,7 @@ export async function getDailyReport({ cashierId }) {
       createdAt: sale.createdAt,
       total: sale.total,
       status: sale.status,
+      customerName: sale.customerName,
       items: sale.items,
       // ✅ Ambil payment method dari payments
       paymentMethod: sale.payments[0]?.method || "N/A",
@@ -294,6 +297,7 @@ export async function getSalesReport({ startDate, endDate, period = "7days" }) {
       createdAt: sale.createdAt,
       total: sale.total,
       status: sale.status,
+      customerName: sale.customerName,
       items: sale.items,
       paymentMethod: sale.payments[0]?.method || "N/A",
       totalAmount: sale.total,
@@ -415,6 +419,7 @@ export async function getPaginatedSales({
     createdAt: sale.createdAt,
     total: sale.total,
     status: sale.status,
+    customerName: sale.customerName,
     paymentMethod: sale.payments[0]?.method || "N/A", // ✅ Ambil dari payments
     items: sale.items.map((item) => ({
       productId: item.productId,
@@ -440,3 +445,4 @@ export async function getPaginatedSales({
     },
   };
 }
+

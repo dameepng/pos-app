@@ -310,6 +310,9 @@ export default function SalesTable() {
                     ID Transaksi
                   </th>
                   <th className="px-5 py-3 text-left text-xs font-semibold text-zinc-600">
+                    Customer
+                  </th>
+                  <th className="px-5 py-3 text-left text-xs font-semibold text-zinc-600">
                     Kasir
                   </th>
                   <th className="px-5 py-3 text-left text-xs font-semibold text-zinc-600">
@@ -367,6 +370,11 @@ export default function SalesTable() {
                           </span>
                         </td>
                         <td className="px-5 py-4">
+                          <span className="text-sm text-zinc-700">
+                            {sale.customerName || "-"}
+                          </span>
+                        </td>
+                        <td className="px-5 py-4">
                           <div className="text-sm">
                             <p className="font-medium text-zinc-900">
                               {sale.cashier?.name || "-"}
@@ -414,7 +422,7 @@ export default function SalesTable() {
 
                       {isExpanded && (
                         <tr className="bg-zinc-50">
-                          <td colSpan={8} className="px-5 py-4">
+                          <td colSpan={9} className="px-5 py-4">
                             <div className="bg-white rounded-lg border p-4">
                               <div className="flex items-center gap-2 mb-3">
                                 <Package size={16} className="text-zinc-600" />
