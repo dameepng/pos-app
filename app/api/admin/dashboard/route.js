@@ -1,15 +1,15 @@
-import { requireRole } from "@/domain/auth/auth.service";
-import { toHttpResponse } from "@/lib/errors/toHttpResponse";
 import { getAdminDashboard } from "@/domain/dashboard/dashboard.service";
+import { withAuth } from "@/api/middlewares/auth.middleware";
+import { withErrorHandler } from "@/api/middlewares/errorHandler.middleware";
+import { withLogger } from "@/api/middlewares/logger.middleware";
 
-export async function GET(req) {
-  try {
-    await requireRole(["ADMIN"]);
-    
-    const data = await getAdminDashboard();
+async function handler() {
+  const data = await getAdminDashboard();
+  return Response.json({ data }, { status: 200 });
+}
 
-    return Response.json({ data }, { status: 200 });
-  } catch (err) {
-    return toHttpResponse(err);
-  }
+const getHandler = withErrorHandler(withLogger(withAuth(handler, ["ADMIN"])));
+
+export async function GET(req, ctx) {
+  return getHandler(req, ctx);
 }

@@ -1,11 +1,9 @@
-import { toHttpResponse } from "@/lib/errors/toHttpResponse";
-import { getAuthUserFromRequest } from "@/domain/auth/auth.service";
+import { meHandler } from "@/api/controllers/auth.controller";
+import { withErrorHandler } from "@/api/middlewares/errorHandler.middleware";
+import { withLogger } from "@/api/middlewares/logger.middleware";
 
-export async function GET() {
-  try {
-    const user = await getAuthUserFromRequest();
-    return Response.json({ data: user }, { status: 200 });
-  } catch (err) {
-    return toHttpResponse(err);
-  }
+const handler = withErrorHandler(withLogger(meHandler));
+
+export async function GET(req, ctx) {
+  return handler(req, ctx);
 }

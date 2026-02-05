@@ -1,124 +1,38 @@
-import { prisma } from "@/data/prisma/client";
-import { requireRole } from "@/domain/auth/auth.service";
-import { toHttpResponse } from "@/lib/errors/toHttpResponse";
+import {
+  adminDeleteProductHandler,
+  adminGetProductHandler,
+  adminPatchProductHandler,
+  adminUpdateProductHandler,
+} from "@/api/controllers/product.controller";
+import { withAuth } from "@/api/middlewares/auth.middleware";
+import { withErrorHandler } from "@/api/middlewares/errorHandler.middleware";
+import { withLogger } from "@/api/middlewares/logger.middleware";
 
-export async function GET(req, { params }) {
-  try {
-    await requireRole(["ADMIN"]);
+const getHandler = withErrorHandler(
+  withLogger(withAuth(adminGetProductHandler, ["ADMIN"]))
+);
+const putHandler = withErrorHandler(
+  withLogger(withAuth(adminUpdateProductHandler, ["ADMIN"]))
+);
+const patchHandler = withErrorHandler(
+  withLogger(withAuth(adminPatchProductHandler, ["ADMIN"]))
+);
+const deleteHandler = withErrorHandler(
+  withLogger(withAuth(adminDeleteProductHandler, ["ADMIN"]))
+);
 
-    const { id } = await params;  // ✅ Destructure
-    const data = await prisma.product.findUnique({
-      where: { id },
-      include: { category: true, inventory: true },
-    });
-
-    return Response.json({ data }, { status: 200 });
-  } catch (err) {
-    return toHttpResponse(err);
-  }
+export async function GET(req, ctx) {
+  return getHandler(req, ctx);
 }
 
-export async function PUT(req, { params }) {
-  try {
-    await requireRole(["ADMIN"]);
-
-    const { id } = await params;  // ✅ Destructure
-    const body = await req.json();
-
-    const payload = {
-      name: (body?.name || "").trim(),
-      sku: (body?.sku || "").trim() || null,
-      barcode: (body?.barcode || "").trim() || null,
-      price: Number(body?.price || 0),
-      cost: Number(body?.cost || 0),
-      isActive: body?.isActive !== false,
-      categoryId: body?.categoryId || null,
-      qtyOnHand: Number(body?.qtyOnHand || 0),
-    };
-
-    if (!payload.name) {
-      return Response.json({ error: { message: "name is required" } }, { status: 400 });
-    }
-
-    const data = await prisma.product.update({
-      where: { id },
-      data: {
-        name: payload.name,
-        sku: payload.sku,
-        barcode: payload.barcode,
-        price: payload.price,
-        cost: payload.cost,
-        isActive: payload.isActive,
-        categoryId: payload.categoryId,
-        inventory: {
-          upsert: {
-            create: { qtyOnHand: payload.qtyOnHand },
-            update: { qtyOnHand: payload.qtyOnHand },
-          },
-        },
-      },
-      include: { category: true, inventory: true },
-    });
-
-    return Response.json({ data }, { status: 200 });
-  } catch (err) {
-    return toHttpResponse(err);
-  }
+export async function PUT(req, ctx) {
+  return putHandler(req, ctx);
 }
 
-export async function PATCH(req, { params }) {
-  try {
-    await requireRole(["ADMIN"]);
-
-    const { id } = await params;
-    const body = await req.json();
-
-    // hanya update field yang dikirim
-    const dataUpdate = {};
-
-    if ("isActive" in body) {
-      dataUpdate.isActive = body.isActive;
-    }
-
-    // inventory hanya kalau qtyOnHand dikirim
-    if ("qtyOnHand" in body) {
-      const qty = Number(body.qtyOnHand || 0);
-
-      dataUpdate.inventory = {
-        upsert: {
-          create: { qtyOnHand: qty },
-          update: { qtyOnHand: qty },
-        },
-      };
-    }
-
-    const data = await prisma.product.update({
-      where: { id },
-      data: dataUpdate,
-      include: { category: true, inventory: true },
-    });
-
-    return Response.json({ data }, { status: 200 });
-  } catch (err) {
-    return toHttpResponse(err);
-  }
+export async function PATCH(req, ctx) {
+  return patchHandler(req, ctx);
 }
 
-
-export async function DELETE(req, { params }) {
-  try {
-    await requireRole(["ADMIN"]);
-
-    const { id } = await params;  // ✅ Destructure
-
-    const data = await prisma.product.update({
-      where: { id },
-      data: { isActive: false },
-      include: { category: true, inventory: true },
-    });
-
-    return Response.json({ data }, { status: 200 });
-  } catch (err) {
-    return toHttpResponse(err);
-  }
+export async function DELETE(req, ctx) {
+  return deleteHandler(req, ctx);
 }

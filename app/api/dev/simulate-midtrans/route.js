@@ -1,12 +1,14 @@
 import crypto from "crypto";
 import { handleMidtransWebhook } from "@/domain/webhooks/midtransWebhook.service";
 import { env } from "@/config/env";
+import { withErrorHandler } from "@/api/middlewares/errorHandler.middleware";
+import { withLogger } from "@/api/middlewares/logger.middleware";
 
 function sha512(str) {
   return crypto.createHash("sha512").update(str).digest("hex");
 }
 
-export async function POST(req) {
+async function handler(req) {
   const body = await req.json();
 
   const orderId = body.orderId;
@@ -29,4 +31,10 @@ export async function POST(req) {
   const data = await handleMidtransWebhook(fakeNotification);
 
   return Response.json({ data }, { status: 200 });
+}
+
+const postHandler = withErrorHandler(withLogger(handler));
+
+export async function POST(req, ctx) {
+  return postHandler(req, ctx);
 }

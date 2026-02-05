@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { printReceipt } from "@/ui/utils/printReceipt";
 
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
@@ -29,6 +30,7 @@ export default function PaymentPanel({
   const [midtransGrossAmount, setMidtransGrossAmount] = useState(null);
 
   const [pollSaleId, setPollSaleId] = useState(null);
+  const [lastReceipt, setLastReceipt] = useState(null);
 
   async function createSaleIfNeeded() {
     if (sale?.saleId) return sale;
@@ -59,6 +61,47 @@ export default function PaymentPanel({
     setPollSaleId(null);
   }
 
+  async function fetchSaleDetail(saleId) {
+    const res = await fetch(`/api/sales/${saleId}`);
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error?.message || "Failed load sale");
+    return json.data;
+  }
+
+  async function handlePrintReceipt({
+    saleId,
+    paymentMethod,
+    paidAmount,
+    change,
+  }) {
+    try {
+      const detail = await fetchSaleDetail(saleId);
+      const totalAmount = Number(detail?.total || 0);
+      const paid = Number.isFinite(paidAmount) ? paidAmount : totalAmount;
+      const changeAmount =
+        Number.isFinite(change) ? change : Math.max(0, paid - totalAmount);
+
+      const payload = {
+        saleId: detail?.saleId || saleId,
+        createdAt: detail?.createdAt,
+        customerName: detail?.customerName,
+        cashierName: detail?.cashier?.name,
+        items: detail?.items || [],
+        total: totalAmount,
+        paymentMethod:
+          paymentMethod || detail?.payments?.[0]?.method || "N/A",
+        paidAmount: paid,
+        change: changeAmount,
+      };
+
+      setLastReceipt(payload);
+      printReceipt(payload);
+    } catch (e) {
+      console.error(e);
+      alert(e.message || "Gagal cetak struk");
+    }
+  }
+
   async function payCash() {
     if (cartItems.length === 0) return alert("Cart kosong");
     if (!Number.isFinite(paidNumber) || paidNumber <= 0)
@@ -77,6 +120,13 @@ export default function PaymentPanel({
 
       const json = await res.json();
       if (!res.ok) throw new Error(json.error?.message || "Payment failed");
+
+      await handlePrintReceipt({
+        saleId: currentSale.saleId,
+        paymentMethod: "CASH",
+        paidAmount: paidNumber,
+        change: Number(json.data?.change || 0),
+      });
 
       alert(`Pembayaran sukses. Kembalian: ${formatRp(json.data.change)}`);
       onClear();
@@ -172,6 +222,10 @@ export default function PaymentPanel({
 
         if (res.ok && json.data?.status === "PAID") {
           alert("Pembayaran terkonfirmasi. Sale PAID.");
+          await handlePrintReceipt({
+            saleId: pollSaleId,
+            paymentMethod: "QRIS",
+          });
           onClear();
           onPaidSuccess?.();
           setPaidAmount("");
@@ -258,6 +312,16 @@ export default function PaymentPanel({
             Open payment page
           </a>
         </div>
+      )}
+
+      {lastReceipt && (
+        <button
+          type="button"
+          onClick={() => printReceipt(lastReceipt)}
+          className="w-full rounded-xl border px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-50"
+        >
+          Print Struk Terakhir
+        </button>
       )}
     </div>
   );

@@ -1,6 +1,9 @@
-import { clearSessionCookie } from "@/lib/auth/cookies";
+import { logoutHandler } from "@/api/controllers/auth.controller";
+import { withErrorHandler } from "@/api/middlewares/errorHandler.middleware";
+import { withLogger } from "@/api/middlewares/logger.middleware";
 
-export async function POST() {
-  await clearSessionCookie();
-  return Response.json({ data: { ok: true } }, { status: 200 });
+const handler = withErrorHandler(withLogger(logoutHandler));
+
+export async function POST(req, ctx) {
+  return handler(req, ctx);
 }

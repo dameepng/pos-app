@@ -1,16 +1,9 @@
-import { toHttpResponse } from "@/lib/errors/toHttpResponse";
-import { loginWithEmailPassword } from "@/domain/auth/auth.service";
-import { setSessionCookie } from "@/lib/auth/cookies";
+import { loginHandler } from "@/api/controllers/auth.controller";
+import { withErrorHandler } from "@/api/middlewares/errorHandler.middleware";
+import { withLogger } from "@/api/middlewares/logger.middleware";
 
-export async function POST(req) {
-  try {
-    const body = await req.json();
-    const { token, user } = await loginWithEmailPassword(body);
+const handler = withErrorHandler(withLogger(loginHandler));
 
-    await setSessionCookie(token);
-
-    return Response.json({ data: user }, { status: 200 });
-  } catch (err) {
-    return toHttpResponse(err);
-  }
+export async function POST(req, ctx) {
+  return handler(req, ctx);
 }

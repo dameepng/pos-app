@@ -1,29 +1,12 @@
-import { toHttpResponse } from "@/lib/errors/toHttpResponse";
-import { createQrisPaymentForSale } from "@/domain/payments/qrisPayment.service";
+import { paySaleByQrisHandler } from "@/api/controllers/sale.controller";
+import { withAuth } from "@/api/middlewares/auth.middleware";
+import { withErrorHandler } from "@/api/middlewares/errorHandler.middleware";
+import { withLogger } from "@/api/middlewares/logger.middleware";
 
-function extractSaleIdFromUrl(url) {
-  const u = new URL(url);
-  const parts = u.pathname.split("/").filter(Boolean);
-  const idx = parts.indexOf("sales");
-  if (idx === -1) return null;
-  return parts[idx + 1] || null;
-}
+const handler = withErrorHandler(
+  withLogger(withAuth(paySaleByQrisHandler, ["CASHIER", "ADMIN"]))
+);
 
-export async function POST(req) {
-  try {
-    if (!process.env.DEV_CASHIER_ID) {
-      throw new Error("DEV_CASHIER_ID is not set in .env.local");
-    }
-
-    const saleId = extractSaleIdFromUrl(req.url);
-
-    const data = await createQrisPaymentForSale({
-      saleId,
-      cashierId: process.env.DEV_CASHIER_ID,
-    });
-
-    return Response.json({ data }, { status: 200 });
-  } catch (err) {
-    return toHttpResponse(err);
-  }
+export async function POST(req, ctx) {
+  return handler(req, ctx);
 }

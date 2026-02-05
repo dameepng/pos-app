@@ -13,6 +13,8 @@ import {
   X,
   Command,
   Monitor,
+  Users,
+  KeyRound,
 } from "lucide-react";
 
 export default function AdminNavbar({ user }) {
@@ -25,6 +27,8 @@ export default function AdminNavbar({ user }) {
     { href: "/pos", label: "Open POS", icon: Monitor },
     { href: "/admin/products", label: "Products", icon: Package },
     { href: "/admin/categories", label: "Categories", icon: Tags },
+    { href: "/admin/users", label: "Users", icon: Users },
+    { href: "/admin/change-password", label: "Change Password", icon: KeyRound },
     { href: "/admin/reports", label: "Reports", icon: FileBarChart },
   ];
 

@@ -1,5 +1,5 @@
 import bcrypt from "bcryptjs";
-import { findUserByEmail } from "@/data/repositories/user.repo";
+import { findUserByEmail, findUserById, updateUserById } from "@/data/repositories/user.repo";
 import { AppError } from "@/lib/errors/AppError";
 import { ERROR_CODES } from "@/lib/errors/errorCodes";
 import { signSession, verifySession } from "@/lib/auth/jwt";
@@ -55,4 +55,49 @@ export async function requireRole(allowedRoles) {
     throw new AppError(ERROR_CODES.FORBIDDEN, "Forbidden", 403);
   }
   return user;
+}
+
+export async function changeOwnPassword({ userId, currentPassword, newPassword }) {
+  const user = await findUserById(userId);
+  if (!user || !user.passwordHash) {
+    throw new AppError(ERROR_CODES.UNAUTHORIZED, "Unauthorized", 401);
+  }
+
+  const ok = await bcrypt.compare(currentPassword, user.passwordHash);
+  if (!ok) {
+    throw new AppError(ERROR_CODES.UNAUTHORIZED, "Current password is incorrect", 401);
+  }
+
+  const newHash = await bcrypt.hash(newPassword, 10);
+  await updateUserById(userId, {
+    passwordHash: newHash,
+    mustChangePassword: false,
+  });
+
+  return { ok: true };
+}
+
+export async function adminUpdateUser({ userId, email, role, password }) {
+  const data = {};
+
+  if (typeof email === "string") {
+    data.email = email.trim();
+  }
+
+  if (typeof role === "string") {
+    data.role = role;
+  }
+
+  if (typeof password === "string" && password.length > 0) {
+    const newHash = await bcrypt.hash(password, 10);
+    data.passwordHash = newHash;
+    data.mustChangePassword = true;
+  }
+
+  if (Object.keys(data).length === 0) {
+    throw new AppError(ERROR_CODES.VALIDATION_ERROR, "No fields to update", 400);
+  }
+
+  const updated = await updateUserById(userId, data);
+  return { id: updated.id, email: updated.email, role: updated.role };
 }

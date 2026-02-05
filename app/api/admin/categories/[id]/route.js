@@ -1,38 +1,37 @@
 import { prisma } from "@/data/prisma/client";
-import { requireRole } from "@/domain/auth/auth.service";
-import { toHttpResponse } from "@/lib/errors/toHttpResponse";
+import { withAuth } from "@/api/middlewares/auth.middleware";
+import { withErrorHandler } from "@/api/middlewares/errorHandler.middleware";
+import { withLogger } from "@/api/middlewares/logger.middleware";
 
-export async function PUT(req, { params }) {
-  try {
-    await requireRole(["ADMIN"]);
+async function putHandlerImpl(req, { params }) {
+  const { id } = await params;
+  const body = await req.json();
+  const name = (body?.name || "").trim();
+  if (!name) return Response.json({ error: { message: "name is required" } }, { status: 400 });
 
-    const { id } = await params;  // ✅ Destructure dan await
-    const body = await req.json();
-    const name = (body?.name || "").trim();
-    if (!name) return Response.json({ error: { message: "name is required" } }, { status: 400 });
+  const data = await prisma.category.update({
+    where: { id },
+    data: { name },
+  });
 
-    const data = await prisma.category.update({
-      where: { id },
-      data: { name },
-    });
-
-    return Response.json({ data }, { status: 200 });
-  } catch (err) {
-    return toHttpResponse(err);
-  }
+  return Response.json({ data }, { status: 200 });
 }
 
-export async function DELETE(req, { params }) {
-  try {
-    await requireRole(["ADMIN"]);
+async function deleteHandlerImpl(req, { params }) {
+  const { id } = await params;
 
-    const { id } = await params;  // ✅ Destructure dan await
+  await prisma.category.delete({ where: { id } });
 
-    // NOTE: jika category sudah dipakai product, delete akan gagal (FK). Itu bagus.
-    await prisma.category.delete({ where: { id } });
+  return Response.json({ data: { ok: true } }, { status: 200 });
+}
 
-    return Response.json({ data: { ok: true } }, { status: 200 });
-  } catch (err) {
-    return toHttpResponse(err);
-  }
+const putHandler = withErrorHandler(withLogger(withAuth(putHandlerImpl, ["ADMIN"])));
+const deleteHandler = withErrorHandler(withLogger(withAuth(deleteHandlerImpl, ["ADMIN"])));
+
+export async function PUT(req, ctx) {
+  return putHandler(req, ctx);
+}
+
+export async function DELETE(req, ctx) {
+  return deleteHandler(req, ctx);
 }
