@@ -7,6 +7,13 @@ import SalesTable from "@/ui/components/admin/SalesTable";
 import DateRangeFilter from "@/ui/components/admin/DateRangeFilter";
 import { exportToCSV } from "@/lib/utils/exportCsv";
 import SalesChart from "@/ui/components/admin/SalesChart";
+import {
+  ReportSkeleton,
+  SummaryCardsSkeleton,
+  PaymentCardsSkeleton,
+  ChartSkeleton,
+  TableSkeleton,
+} from "@/ui/components/admin/AdminSkeletons";
 
 export default function ReportsAdminPage() {
   const [report, setReport] = useState(null);
@@ -144,14 +151,7 @@ export default function ReportsAdminPage() {
   };
 
   if (loading && !report) {
-    return (
-      <div className="min-h-screen bg-zinc-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-zinc-900 mx-auto"></div>
-          <p className="mt-4 text-sm text-zinc-600">Memuat laporan...</p>
-        </div>
-      </div>
-    );
+    return <ReportSkeleton />;
   }
 
   return (
@@ -197,9 +197,20 @@ export default function ReportsAdminPage() {
           loading={loading}
         />
 
-        <SalesChart data={chartData} period={period} />
+        {loading ? (
+          <ChartSkeleton />
+        ) : (
+          <SalesChart data={chartData} period={period} />
+        )}
 
-        <ReportSummary report={report} />
+        {loading ? (
+          <>
+            <SummaryCardsSkeleton />
+            <PaymentCardsSkeleton />
+          </>
+        ) : (
+          <ReportSummary report={report} />
+        )}
 
         {/* Sales Table */}
         <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
@@ -217,10 +228,7 @@ export default function ReportsAdminPage() {
           </div>
 
           {loading ? (
-            <div className="px-5 py-12 text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-zinc-900 mx-auto"></div>
-              <p className="mt-3 text-sm text-zinc-600">Memuat data...</p>
-            </div>
+            <TableSkeleton columns={9} rows={5} />
           ) : (
             <SalesTable sales={sales} />
           )}

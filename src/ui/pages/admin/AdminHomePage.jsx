@@ -12,6 +12,7 @@ import {
   Clock,
 } from "lucide-react";
 import Link from "next/link";
+import { DashboardSkeleton } from "@/ui/components/admin/AdminSkeletons";
 
 function formatRp(n) {
   return `Rp ${Number(n || 0).toLocaleString("id-ID")}`;
@@ -47,14 +48,7 @@ export default function AdminHomePage() {
   }, []);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-zinc-900 mx-auto"></div>
-          <p className="mt-4 text-sm text-zinc-600">Memuat dashboard...</p>
-        </div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   const today = new Date().toLocaleDateString("id-ID", {
