@@ -112,11 +112,11 @@ function buildCode39Svg(value) {
 }
 
 export function printReceipt({
-  storeName = "POS App",
-  storeAddress = "",
-  storePhone = "",
+  storeName = "Toko Maju Terus",
+  storeAddress = "Jalan Raya Serpong, RT99/99 NO. 16",
+  storePhone = "08123456789",
   footerText = "Terima kasih atas kunjungan Anda",
-  logoUrl = "",
+  logoUrl = "https://www.designmantic.com/logo-images/166557.png?company=Company%20Name&keyword=retail&slogan=&verify=1",
   saleId,
   createdAt,
   customerName,
@@ -135,8 +135,8 @@ export function printReceipt({
     .map((item) => {
       const name = escapeHtml(item?.name || item?.product?.name || "-");
       const qty = Number(item?.qty || 0);
-      const price = formatRp(item?.price || 0);
-      const subtotal = formatRp(item?.subtotal || qty * (item?.price || 0));
+      const price = Number(item?.price || 0);
+      const subtotal = Number(item?.subtotal || qty * (item?.price || 0));
       return `
         <tr>
           <td class="item-name">${name}</td>

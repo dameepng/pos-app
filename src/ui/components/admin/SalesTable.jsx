@@ -36,7 +36,7 @@ function formatDate(dateString) {
 export default function SalesTable() {
   const [expandedSales, setExpandedSales] = useState(new Set());
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(25);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [sales, setSales] = useState([]);
   const [pagination, setPagination] = useState(null);
   const [loading, setLoading] = useState(true);

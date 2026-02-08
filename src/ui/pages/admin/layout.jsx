@@ -16,7 +16,7 @@ export default async function AdminLayout({ children }) {
   return (
     <div className="min-h-screen bg-zinc-50">
       <AdminNavbar user={user} />
-      <main>{children}</main>
+      <main className="pt-16 lg:pt-0 lg:pl-64">{children}</main>
     </div>
   );
 }

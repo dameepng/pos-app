@@ -31,6 +31,7 @@ export default function PaymentPanel({
 
   const [pollSaleId, setPollSaleId] = useState(null);
   const [lastReceipt, setLastReceipt] = useState(null);
+  const [printPrompt, setPrintPrompt] = useState(null);
 
   async function createSaleIfNeeded() {
     if (sale?.saleId) return sale;
@@ -68,7 +69,7 @@ export default function PaymentPanel({
     return json.data;
   }
 
-  async function handlePrintReceipt({
+  async function prepareReceipt({
     saleId,
     paymentMethod,
     paidAmount,
@@ -95,7 +96,7 @@ export default function PaymentPanel({
       };
 
       setLastReceipt(payload);
-      printReceipt(payload);
+      setPrintPrompt(payload);
     } catch (e) {
       console.error(e);
       alert(e.message || "Gagal cetak struk");
@@ -121,7 +122,7 @@ export default function PaymentPanel({
       const json = await res.json();
       if (!res.ok) throw new Error(json.error?.message || "Payment failed");
 
-      await handlePrintReceipt({
+      await prepareReceipt({
         saleId: currentSale.saleId,
         paymentMethod: "CASH",
         paidAmount: paidNumber,
@@ -221,8 +222,8 @@ export default function PaymentPanel({
         const json = await res.json();
 
         if (res.ok && json.data?.status === "PAID") {
-          alert("Pembayaran terkonfirmasi. Sale PAID.");
-          await handlePrintReceipt({
+          alert("Pembayaran terkonfirmasi. Silakan cetak struk.");
+          await prepareReceipt({
             saleId: pollSaleId,
             paymentMethod: "QRIS",
           });
@@ -311,6 +312,32 @@ export default function PaymentPanel({
           >
             Open payment page
           </a>
+        </div>
+      )}
+
+      {printPrompt && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+          <div className="font-medium">Struk siap dicetak</div>
+          <div className="mt-1">Klik Print untuk mencetak sekarang.</div>
+          <div className="mt-2 flex gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                printReceipt(printPrompt);
+                setPrintPrompt(null);
+              }}
+              className="rounded-lg bg-zinc-900 text-white px-3 py-1.5 text-xs"
+            >
+              Print
+            </button>
+            <button
+              type="button"
+              onClick={() => setPrintPrompt(null)}
+              className="rounded-lg border px-3 py-1.5 text-xs"
+            >
+              Batal
+            </button>
+          </div>
         </div>
       )}
 
