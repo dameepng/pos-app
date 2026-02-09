@@ -85,6 +85,7 @@ model Product {
   name       String
   price      Int
   cost       Int?
+  imageUrl   String?
   isActive   Boolean   @default(true)
 
   category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)

@@ -135,8 +135,17 @@ export default function ProductSearch({ onSelect, categoryId, refreshKey }) {
                     isOutOfStock ? "opacity-50 cursor-not-allowed" : ""
                   }`}
                 >
-                  <div className="aspect-[4/3] rounded-xl bg-gradient-to-br from-zinc-100 to-zinc-200 flex items-center justify-center text-xs text-zinc-600">
-                    {p.sku ? p.sku : "SKU"}
+                  <div className="aspect-[4/3] rounded-xl bg-gradient-to-br from-zinc-100 to-zinc-200 flex items-center justify-center text-xs text-zinc-600 overflow-hidden">
+                    {p.imageUrl ? (
+                      <img
+                        src={p.imageUrl}
+                        alt={p.name || "Product image"}
+                        className="h-full w-full object-cover"
+                        loading="lazy"
+                      />
+                    ) : (
+                      p.sku || "SKU"
+                    )}
                   </div>
 
                   <div className="mt-3 space-y-1">

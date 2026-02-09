@@ -1,4 +1,6 @@
 import { prisma } from "@/data/prisma/client";
+import { promises as fs } from "fs";
+import path from "path";
 import {
   buildProductPatchData,
   buildProductPayload,
@@ -221,6 +223,78 @@ export async function adminDeleteProductHandler(req, { params }) {
     const data = await prisma.product.update({
       where: { id },
       data: { isActive: false },
+      include: { category: true, inventory: true },
+    });
+
+    return Response.json({ data }, { status: 200 });
+  } catch (err) {
+    return toHttpResponse(err);
+  }
+}
+
+export async function adminUploadProductImageHandler(req, { params }) {
+  try {
+    const { id } = await params;
+
+    const product = await prisma.product.findUnique({
+      where: { id },
+      select: { id: true, imageUrl: true },
+    });
+
+    if (!product) {
+      return Response.json({ error: { message: "Product not found" } }, { status: 404 });
+    }
+
+    const formData = await req.formData();
+    const file = formData.get("file");
+
+    if (!file || typeof file.arrayBuffer !== "function") {
+      return Response.json(
+        { error: { message: "Image file is required" } },
+        { status: 400 }
+      );
+    }
+
+    const maxBytes = 2 * 1024 * 1024;
+    if (file.size > maxBytes) {
+      return Response.json(
+        { error: { message: "Image too large (max 2MB)" } },
+        { status: 413 }
+      );
+    }
+
+    const mimeToExt = new Map([
+      ["image/jpeg", "jpg"],
+      ["image/png", "png"],
+      ["image/webp", "webp"],
+      ["image/avif", "avif"],
+    ]);
+    const ext = mimeToExt.get(file.type);
+    if (!ext) {
+      return Response.json(
+        { error: { message: "Unsupported image type" } },
+        { status: 415 }
+      );
+    }
+
+    const uploadsDir = path.join(process.cwd(), "public", "uploads", "products");
+    await fs.mkdir(uploadsDir, { recursive: true });
+
+    const filename = `${id}-${Date.now()}.${ext}`;
+    const filePath = path.join(uploadsDir, filename);
+    const buffer = Buffer.from(await file.arrayBuffer());
+    await fs.writeFile(filePath, buffer);
+
+    const imageUrl = `/uploads/products/${filename}`;
+
+    if (product.imageUrl?.startsWith("/uploads/products/")) {
+      const oldPath = path.join(process.cwd(), "public", product.imageUrl.replace(/^\/+/, ""));
+      await fs.unlink(oldPath).catch(() => {});
+    }
+
+    const data = await prisma.product.update({
+      where: { id },
+      data: { imageUrl },
       include: { category: true, inventory: true },
     });
 

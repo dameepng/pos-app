@@ -70,7 +70,20 @@ export default function ProductsList({
               className="p-4 hover:bg-zinc-50/50 transition flex items-center justify-between gap-4 group"
             >
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 mb-1">
+                <div className="flex items-center gap-3 mb-1">
+                  <div className="h-10 w-10 rounded-lg bg-zinc-100 border border-zinc-200 overflow-hidden flex items-center justify-center text-[10px] font-bold text-zinc-400">
+                    {p.imageUrl ? (
+                      <img
+                        src={p.imageUrl}
+                        alt={p.name || "Product image"}
+                        className="h-full w-full object-cover"
+                        loading="lazy"
+                      />
+                    ) : (
+                      "No Image"
+                    )}
+                  </div>
+
                   <span className="font-bold text-zinc-900 truncate">
                     {p.name}
                   </span>
@@ -101,6 +114,15 @@ export default function ProductsList({
                     </span>
                     <span className="font-bold text-zinc-900 text-sm">
                       {rp(p.price)}
+                    </span>
+                  </div>
+
+                  <div>
+                    <span className="block text-[9px] uppercase font-bold text-zinc-400">
+                      Capital Cost
+                    </span>
+                    <span className="font-bold text-zinc-900 text-sm">
+                      {rp(p.cost)}
                     </span>
                   </div>
 

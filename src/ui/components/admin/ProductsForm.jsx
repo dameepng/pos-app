@@ -10,9 +10,15 @@ export default function ProductsForm({
   categories,
   busy,
   error,
+  imageFile,
+  imagePreviewUrl,
+  onImageChange,
   onSubmit,
   onReset,
 }) {
+  const hasPreview = !!imagePreviewUrl;
+  const currentImageUrl = !hasPreview ? form.imageUrl : "";
+
   return (
     <div className="rounded-2xl border bg-white p-6 shadow-sm ring-1 ring-zinc-200/50">
       <div className="flex items-center gap-2 mb-6">
@@ -125,6 +131,38 @@ export default function ProductsForm({
             </select>
           </AdminField>
         </div>
+
+        <AdminField label="Product Image">
+          <div className="flex items-center gap-4">
+            <div className="h-16 w-16 rounded-xl bg-zinc-100 border border-zinc-200 overflow-hidden flex items-center justify-center text-[10px] font-bold text-zinc-400">
+              {hasPreview || currentImageUrl ? (
+                <img
+                  src={hasPreview ? imagePreviewUrl : currentImageUrl}
+                  alt={form.name || "Product image"}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                "No Image"
+              )}
+            </div>
+
+            <label className="flex-1 cursor-pointer">
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => onImageChange?.(e.target.files?.[0] || null)}
+                disabled={busy}
+              />
+              <div className="px-3 py-2 rounded-lg border border-zinc-200 bg-white text-xs font-semibold text-zinc-700 hover:bg-zinc-50">
+                {imageFile ? "Change Image" : "Upload Image"}
+              </div>
+              <p className="mt-1 text-[11px] text-zinc-500">
+                JPG/PNG/WebP/AVIF, max 2MB.
+              </p>
+            </label>
+          </div>
+        </AdminField>
 
         <label className="flex items-center gap-3 p-3 rounded-xl border border-zinc-100 bg-zinc-50/50 cursor-pointer hover:bg-zinc-50 transition">
           <input

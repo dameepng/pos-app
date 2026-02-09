@@ -31,8 +31,11 @@ export default function ProductsAdminPage() {
     cost: "",
     qtyOnHand: "",
     categoryId: "",
+    imageUrl: "",
     isActive: true,
   });
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState("");
 
   const mode = useMemo(() => (form.id ? "edit" : "create"), [form.id]);
 
@@ -120,8 +123,24 @@ export default function ProductsAdminPage() {
       cost: "",
       qtyOnHand: "",
       categoryId: "",
+      imageUrl: "",
       isActive: true,
     });
+    setImageFile(null);
+  }
+
+  async function uploadProductImage(productId, file) {
+    const fd = new FormData();
+    fd.append("file", file);
+    const res = await fetch(`/api/admin/products/${productId}/image`, {
+      method: "POST",
+      body: fd,
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      throw new Error(json.error?.message || "Failed upload image");
+    }
+    return json.data;
   }
 
   async function submit() {
@@ -150,6 +169,11 @@ export default function ProductsAdminPage() {
 
       const json = await res.json();
       if (!res.ok) throw new Error(json.error?.message || "Failed save");
+      const saved = json.data;
+
+      if (imageFile) {
+        await uploadProductImage(saved.id, imageFile);
+      }
 
       resetForm();
       await loadProducts({ page: 1 });
@@ -171,8 +195,10 @@ export default function ProductsAdminPage() {
       cost: p.cost || "",
       qtyOnHand: p.inventory?.qtyOnHand || "",
       categoryId: p.categoryId || "",
+      imageUrl: p.imageUrl || "",
       isActive: p.isActive !== false,
     });
+    setImageFile(null);
   }
 
   async function toggleStatus(p) {
@@ -200,6 +226,16 @@ export default function ProductsAdminPage() {
     }
   }
 
+  useEffect(() => {
+    if (!imageFile) {
+      setImagePreviewUrl("");
+      return;
+    }
+    const nextUrl = URL.createObjectURL(imageFile);
+    setImagePreviewUrl(nextUrl);
+    return () => URL.revokeObjectURL(nextUrl);
+  }, [imageFile]);
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-1 space-y-4">
@@ -210,6 +246,9 @@ export default function ProductsAdminPage() {
           categories={categories}
           busy={busy}
           error={error}
+          imageFile={imageFile}
+          imagePreviewUrl={imagePreviewUrl}
+          onImageChange={setImageFile}
           onSubmit={submit}
           onReset={resetForm}
         />

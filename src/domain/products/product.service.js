@@ -31,6 +31,7 @@ export async function searchProducts({ q, limit, categoryId }) { // ✅ Tambah c
           barcode: exact.barcode,
           sku: exact.sku,
           price: exact.price,
+          imageUrl: exact.imageUrl,
           qtyOnHand: exact.inventory?.qtyOnHand ?? 0,
         },
       ];
@@ -44,6 +45,7 @@ export async function searchProducts({ q, limit, categoryId }) { // ✅ Tambah c
     barcode: p.barcode,
     sku: p.sku,
     price: p.price,
+    imageUrl: p.imageUrl,
     qtyOnHand: p.inventory?.qtyOnHand ?? 0,
   }));
 }
@@ -64,6 +66,7 @@ export async function getProductsByCategory({ categoryId, limit }) {
     barcode: p.barcode,
     sku: p.sku,
     price: p.price,
+    imageUrl: p.imageUrl,
     qtyOnHand: p.inventory?.qtyOnHand ?? 0,
   }));
 }
@@ -77,6 +80,7 @@ export async function getAllProducts({ limit }) {
     barcode: p.barcode,
     sku: p.sku,
     price: p.price,
+    imageUrl: p.imageUrl,
     qtyOnHand: p.inventory?.qtyOnHand ?? 0,
   }));
 }

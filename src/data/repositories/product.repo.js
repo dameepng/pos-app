@@ -15,6 +15,7 @@ export async function findProductByBarcodeOrSku(q) {
       barcode: true,
       sku: true,
       price: true,
+      imageUrl: true,
       categoryId: true, // ✅ Tambahkan ini untuk filter kategori
       inventory: { select: { qtyOnHand: true } },
     },
@@ -47,6 +48,7 @@ export async function searchProductsByName(q, limit = 20, categoryId = null) { /
       barcode: true,
       sku: true,
       price: true,
+      imageUrl: true,
       inventory: { select: { qtyOnHand: true } },
     },
   });
@@ -68,6 +70,7 @@ export async function findProductsByCategory(categoryId, limit = 50) {
       barcode: true,
       sku: true,
       price: true,
+      imageUrl: true,
       inventory: { select: { qtyOnHand: true } },
     },
   });
@@ -89,6 +92,7 @@ export async function findAllActiveProducts(limit = 50) {
       barcode: true,
       sku: true,
       price: true,
+      imageUrl: true,
       inventory: { select: { qtyOnHand: true } },
     },
   });
