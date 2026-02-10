@@ -36,8 +36,12 @@ export default function PosNavbar({ user }) {
         <div className="flex items-center justify-between h-16">
           {/* Logo & Brand */}
           <div className="flex items-center gap-3">
-            <div className="bg-blue-600 text-white p-2 rounded-xl shadow-sm shadow-blue-200">
-              <ShoppingCart size={22} strokeWidth={2.5} />
+            <div className="bg-white h-10 w-10 rounded-xl border border-zinc-200 shadow-sm overflow-hidden">
+              <img
+                src="/logopos.svg"
+                alt="POS"
+                className="h-full w-full object-contain"
+              />
             </div>
             <div>
               <h1 className="text-sm font-bold text-zinc-900 tracking-tight leading-none">

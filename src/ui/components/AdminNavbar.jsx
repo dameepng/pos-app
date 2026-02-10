@@ -11,7 +11,6 @@ import {
   LogOut,
   Menu,
   X,
-  Command,
   Monitor,
   Users,
   KeyRound,
@@ -52,8 +51,12 @@ export default function AdminNavbar({ user }) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-16">
             <Link href="/admin" className="flex items-center gap-2.5 group">
-              <div className="bg-zinc-900 text-white p-1.5 rounded-lg group-hover:bg-zinc-800 transition-colors">
-                <Command size={20} strokeWidth={2.5} />
+              <div className="bg-white h-9 w-9 rounded-lg border border-zinc-200 group-hover:border-zinc-300 transition-colors overflow-hidden">
+                <img
+                  src="/logopos.svg"
+                  alt="POS Admin"
+                  className="h-full w-full object-contain"
+                />
               </div>
               <div>
                 <h1 className="text-sm font-bold text-zinc-900 tracking-tight leading-none">
@@ -130,11 +133,15 @@ export default function AdminNavbar({ user }) {
       </nav>
 
       {/* Desktop: fixed left sidebar */}
-      <aside className="hidden lg:flex lg:fixed lg:inset-y-0 lg:w-64 lg:flex-col bg-white border-r border-zinc-200">
+      <aside className="hidden lg:flex lg:fixed lg:inset-y-0 lg:w-56 lg:flex-col bg-white border-r border-zinc-200">
         <div className="h-16 px-5 flex items-center border-b border-zinc-200">
           <Link href="/admin" className="flex items-center gap-2.5 group">
-            <div className="bg-zinc-900 text-white p-1.5 rounded-lg group-hover:bg-zinc-800 transition-colors">
-              <Command size={20} strokeWidth={2.5} />
+            <div className="bg-white h-9 w-9 rounded-lg border border-zinc-200 group-hover:border-zinc-300 transition-colors overflow-hidden">
+              <img
+                src="/logopos.svg"
+                alt="POS Admin"
+                className="h-full w-full object-contain"
+              />
             </div>
             <div>
               <h1 className="text-sm font-bold text-zinc-900 tracking-tight leading-none">
@@ -147,7 +154,7 @@ export default function AdminNavbar({ user }) {
           </Link>
         </div>
 
-        <nav className="flex-1 px-3 py-4 space-y-1">
+        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
             const isActive =
               item.href === "/admin"
