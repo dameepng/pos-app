@@ -1,7 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Calendar } from "lucide-react";
+
+function getLocalYmd(date = new Date()) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
 
 export default function DateRangeFilter({
   startDate,
@@ -15,6 +22,11 @@ export default function DateRangeFilter({
   const [localStart, setLocalStart] = useState(startDate);
   const [localEnd, setLocalEnd] = useState(endDate);
 
+  useEffect(() => {
+    setLocalStart(startDate);
+    setLocalEnd(endDate);
+  }, [startDate, endDate]);
+
   const handleApply = () => {
     onChange(localStart, localEnd);
   };
@@ -24,7 +36,7 @@ export default function DateRangeFilter({
       label: "Hari Ini",
       period: "today", // ✅ ganti dari 7days
       getValue: () => {
-        const today = new Date().toISOString().split("T")[0];
+        const today = getLocalYmd();
         return { start: today, end: today };
       },
     },
@@ -36,8 +48,8 @@ export default function DateRangeFilter({
         const start = new Date();
         start.setDate(start.getDate() - 6);
         return {
-          start: start.toISOString().split("T")[0],
-          end: end.toISOString().split("T")[0],
+          start: getLocalYmd(start),
+          end: getLocalYmd(end),
         };
       },
     },
@@ -49,8 +61,8 @@ export default function DateRangeFilter({
         const start = new Date();
         start.setDate(start.getDate() - 29);
         return {
-          start: start.toISOString().split("T")[0],
-          end: end.toISOString().split("T")[0],
+          start: getLocalYmd(start),
+          end: getLocalYmd(end),
         };
       },
     },
@@ -62,8 +74,8 @@ export default function DateRangeFilter({
         const start = new Date();
         start.setFullYear(start.getFullYear() - 1);
         return {
-          start: start.toISOString().split("T")[0],
-          end: end.toISOString().split("T")[0],
+          start: getLocalYmd(start),
+          end: getLocalYmd(end),
         };
       },
     },

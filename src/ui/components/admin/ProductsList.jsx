@@ -17,6 +17,8 @@ export default function ProductsList({
   onPage,
   onEdit,
   onToggleStatus,
+  onDelete,
+  canDelete = false,
 }) {
   const canPrev = skip > 0;
   const canNext = skip + take < total;
@@ -163,6 +165,16 @@ export default function ProductsList({
                 >
                   {p.isActive ? "Disable" : "Enable"}
                 </button>
+
+                {canDelete && (
+                  <button
+                    className="h-9 px-3 rounded-lg border border-red-200 bg-white text-xs font-bold text-red-700 hover:bg-red-50 shadow-sm transition"
+                    onClick={() => onDelete?.(p)}
+                    disabled={busy}
+                  >
+                    Delete
+                  </button>
+                )}
               </div>
             </div>
           ))

@@ -93,7 +93,10 @@ export default function SalesTable({
       );
 
       if (!response.ok) {
-        throw new Error("Gagal mengambil data transaksi");
+        const result = await response.json().catch(() => ({}));
+        throw new Error(
+          result?.error?.message || `Gagal mengambil data transaksi (HTTP ${response.status})`
+        );
       }
 
       const result = await response.json();

@@ -21,6 +21,7 @@ export default function ProductsAdminPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [role, setRole] = useState(null);
 
   const [form, setForm] = useState({
     id: null,
@@ -38,6 +39,21 @@ export default function ProductsAdminPage() {
   const [imagePreviewUrl, setImagePreviewUrl] = useState("");
 
   const mode = useMemo(() => (form.id ? "edit" : "create"), [form.id]);
+  const isOwner = role === "OWNER";
+
+  useEffect(() => {
+    const loadMe = async () => {
+      try {
+        const res = await fetch("/api/auth/me");
+        const json = await res.json();
+        if (res.ok) setRole(json?.data?.role || null);
+      } catch {
+        setRole(null);
+      }
+    };
+
+    loadMe();
+  }, []);
 
   async function loadCategories() {
     try {
@@ -226,6 +242,30 @@ export default function ProductsAdminPage() {
     }
   }
 
+  async function deleteProduct(p) {
+    if (!confirm(`Delete product "${p.name}"?`)) return;
+
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/admin/products/${p.id}`, {
+        method: "DELETE",
+      });
+
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error?.message || "Failed delete product");
+
+      const isLastItemInPage = (data.items?.length || 0) <= 1;
+      const nextPage = isLastItemInPage && currentPage > 1 ? currentPage - 1 : currentPage;
+      await loadProducts({ page: nextPage });
+      if (nextPage !== currentPage) setCurrentPage(nextPage);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   useEffect(() => {
     if (!imageFile) {
       setImagePreviewUrl("");
@@ -368,6 +408,8 @@ export default function ProductsAdminPage() {
           onNext={() => setCurrentPage((page) => page + 1)}
           onEdit={edit}
           onToggleStatus={toggleStatus}
+          onDelete={deleteProduct}
+          canDelete={isOwner}
         />
       </div>
     </div>

@@ -1,4 +1,5 @@
 import { prisma } from "@/data/prisma/client";
+import { Prisma } from "@prisma/client";
 import { promises as fs } from "fs";
 import path from "path";
 import {
@@ -232,14 +233,42 @@ export async function adminDeleteProductHandler(req, { params }) {
   try {
     const { id } = await params;
 
-    const data = await prisma.product.update({
+    const product = await prisma.product.findUnique({
       where: { id },
-      data: { isActive: false },
+      select: { imageUrl: true },
+    });
+
+    if (!product) {
+      return Response.json({ error: { message: "Product not found" } }, { status: 404 });
+    }
+
+    const data = await prisma.product.delete({
+      where: { id },
       include: { category: true, inventory: true },
     });
 
+    if (product.imageUrl?.startsWith("/uploads/products/")) {
+      const oldPath = path.join(process.cwd(), "public", product.imageUrl.replace(/^\/+/, ""));
+      await fs.unlink(oldPath).catch(() => {});
+    }
+
     return Response.json({ data }, { status: 200 });
   } catch (err) {
+    if (
+      err instanceof Prisma.PrismaClientKnownRequestError &&
+      err.code === "P2003"
+    ) {
+      return Response.json(
+        {
+          error: {
+            message:
+              "Produk tidak bisa dihapus karena sudah dipakai pada transaksi/riwayat stok.",
+          },
+        },
+        { status: 409 }
+      );
+    }
+
     return toHttpResponse(err);
   }
 }

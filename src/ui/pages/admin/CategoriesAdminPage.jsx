@@ -132,7 +132,7 @@ export default function CategoriesAdminPage() {
                     Edit
                   </button>
                   <button
-                    className="rounded-lg border px-3 py-1 text-sm hover:bg-zinc-50"
+                    className="rounded-lg border border-red-200 bg-red-50 px-3 py-1 text-sm font-medium text-red-700 hover:bg-red-100"
                     onClick={() => deleteCategory(c.id)}
                     disabled={busy}
                   >

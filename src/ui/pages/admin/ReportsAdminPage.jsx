@@ -15,6 +15,13 @@ import {
   TableSkeleton,
 } from "@/ui/components/admin/AdminSkeletons";
 
+function getLocalYmd(date = new Date()) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
 export default function ReportsAdminPage() {
   const [report, setReport] = useState(null);
   const [sales, setSales] = useState([]);
@@ -23,8 +30,8 @@ export default function ReportsAdminPage() {
   const [role, setRole] = useState(null);
   const [chartData, setChartData] = useState([]);
   const [dateRange, setDateRange] = useState({
-    startDate: new Date().toISOString().split("T")[0],
-    endDate: new Date().toISOString().split("T")[0],
+    startDate: getLocalYmd(),
+    endDate: getLocalYmd(),
   });
 
   const isOps = role === "OPS";
@@ -45,7 +52,7 @@ export default function ReportsAdminPage() {
 
   useEffect(() => {
     if (!isOps) return;
-    const todayStr = new Date().toISOString().split("T")[0];
+    const todayStr = getLocalYmd();
     setPeriod("today");
     setDateRange({ startDate: todayStr, endDate: todayStr });
   }, [isOps]);

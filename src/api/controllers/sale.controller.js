@@ -157,6 +157,19 @@ export async function getDailyReportHandler(req, _ctx, auth) {
 
 export async function getSalesReportHandler(req, _ctx, auth) {
   try {
+    const toLocalYmd = (date) => {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, "0");
+      const d = String(date.getDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    };
+
+    const parseYmdLocal = (ymd) => {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return null;
+      const [y, m, d] = ymd.split("-").map(Number);
+      return new Date(y, m - 1, d);
+    };
+
     const { searchParams } = new URL(req.url);
     const rawPeriod = searchParams.get("period");
     const {
@@ -181,9 +194,9 @@ export async function getSalesReportHandler(req, _ctx, auth) {
         );
       }
 
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-      if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+      const start = parseYmdLocal(startDate);
+      const end = parseYmdLocal(endDate);
+      if (!start || !end || Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
         return Response.json(
           { error: { message: "Invalid date range" } },
           { status: 400 }
@@ -203,10 +216,10 @@ export async function getSalesReportHandler(req, _ctx, auth) {
         );
       }
 
-      const todayStr = todayStart.toISOString().split("T")[0];
+      const todayStr = toLocalYmd(todayStart);
       const last7Start = new Date(todayStart);
       last7Start.setDate(last7Start.getDate() - 6);
-      const last7Str = last7Start.toISOString().split("T")[0];
+      const last7Str = toLocalYmd(last7Start);
 
       const inferredPeriod =
         startDate === todayStr && endDate === todayStr

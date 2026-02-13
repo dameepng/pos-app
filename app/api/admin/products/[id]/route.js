@@ -18,7 +18,7 @@ const patchHandler = withErrorHandler(
   withLogger(withAuth(adminPatchProductHandler, ["OWNER", "OPS"]))
 );
 const deleteHandler = withErrorHandler(
-  withLogger(withAuth(adminDeleteProductHandler, ["OWNER", "OPS"]))
+  withLogger(withAuth(adminDeleteProductHandler, ["OWNER"]))
 );
 
 export async function GET(req, ctx) {
