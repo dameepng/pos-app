@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronLeft, ChevronRight, Package } from "lucide-react";
+import Image from "next/image";
 
 function rp(n) {
   return `Rp ${Number(n || 0).toLocaleString("id-ID")}`;
@@ -66,7 +67,9 @@ export default function ProductsList({
             No records found.
           </div>
         ) : (
-          items.map((p) => (
+          items.map((p) => {
+            const isRemoteImage = String(p.imageUrl || "").startsWith("http");
+            return (
             <div
               key={p.id}
               className="p-4 hover:bg-zinc-50/50 transition flex items-center justify-between gap-4 group"
@@ -75,11 +78,14 @@ export default function ProductsList({
                 <div className="flex items-center gap-3 mb-1">
                   <div className="h-10 w-10 rounded-lg bg-zinc-100 border border-zinc-200 overflow-hidden flex items-center justify-center text-[10px] font-bold text-zinc-400">
                     {p.imageUrl ? (
-                      <img
+                      <Image
                         src={p.imageUrl}
                         alt={p.name || "Product image"}
+                        width={40}
+                        height={40}
+                        sizes="40px"
+                        unoptimized={isRemoteImage}
                         className="h-full w-full object-cover"
-                        loading="lazy"
                       />
                     ) : (
                       "No Image"
@@ -177,7 +183,8 @@ export default function ProductsList({
                 )}
               </div>
             </div>
-          ))
+            );
+          })
         )}
       </div>
 

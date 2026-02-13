@@ -2,6 +2,12 @@ import { prisma } from "@/data/prisma/client";
 import { Prisma } from "@prisma/client";
 import { promises as fs } from "fs";
 import path from "path";
+import { optimizeImageUpload } from "@/lib/images/optimizeUpload";
+import {
+  deleteFromSupabaseByPublicUrl,
+  isSupabaseStorageEnabled,
+  uploadBufferToSupabase,
+} from "@/lib/storage/supabaseStorage";
 import {
   buildProductPatchData,
   buildProductPayload,
@@ -19,6 +25,18 @@ import {
   searchProducts,
 } from "@/domain/products/product.service";
 import { toHttpResponse } from "@/lib/errors/toHttpResponse";
+
+async function removeProductImageAsset(imageUrl) {
+  if (!imageUrl) return;
+
+  if (imageUrl.startsWith("/uploads/products/")) {
+    const oldPath = path.join(process.cwd(), "public", imageUrl.replace(/^\/+/, ""));
+    await fs.unlink(oldPath).catch(() => {});
+    return;
+  }
+
+  await deleteFromSupabaseByPublicUrl(imageUrl).catch(() => {});
+}
 
 export async function getAllProductsHandler(req) {
   try {
@@ -247,10 +265,7 @@ export async function adminDeleteProductHandler(req, { params }) {
       include: { category: true, inventory: true },
     });
 
-    if (product.imageUrl?.startsWith("/uploads/products/")) {
-      const oldPath = path.join(process.cwd(), "public", product.imageUrl.replace(/^\/+/, ""));
-      await fs.unlink(oldPath).catch(() => {});
-    }
+    await removeProductImageAsset(product.imageUrl);
 
     return Response.json({ data }, { status: 200 });
   } catch (err) {
@@ -289,49 +304,39 @@ export async function adminUploadProductImageHandler(req, { params }) {
     const formData = await req.formData();
     const file = formData.get("file");
 
-    if (!file || typeof file.arrayBuffer !== "function") {
+    const optimized = await optimizeImageUpload({
+      file,
+      baseName: id,
+      maxBytes: 2 * 1024 * 1024,
+      allowSvg: false,
+      resize: { width: 1280, height: 1280 },
+      quality: 78,
+    });
+    if (optimized.error) {
       return Response.json(
-        { error: { message: "Image file is required" } },
-        { status: 400 }
+        { error: { message: optimized.error.message } },
+        { status: optimized.error.status }
       );
     }
 
-    const maxBytes = 2 * 1024 * 1024;
-    if (file.size > maxBytes) {
-      return Response.json(
-        { error: { message: "Image too large (max 2MB)" } },
-        { status: 413 }
-      );
+    let imageUrl = "";
+    if (isSupabaseStorageEnabled()) {
+      const uploaded = await uploadBufferToSupabase({
+        objectPath: `products/${optimized.filename}`,
+        buffer: optimized.buffer,
+        contentType: optimized.mime || "image/webp",
+        upsert: true,
+      });
+      imageUrl = uploaded.publicUrl;
+    } else {
+      const uploadsDir = path.join(process.cwd(), "public", "uploads", "products");
+      await fs.mkdir(uploadsDir, { recursive: true });
+      const filePath = path.join(uploadsDir, optimized.filename);
+      await fs.writeFile(filePath, optimized.buffer);
+      imageUrl = `/uploads/products/${optimized.publicPath}`;
     }
 
-    const mimeToExt = new Map([
-      ["image/jpeg", "jpg"],
-      ["image/png", "png"],
-      ["image/webp", "webp"],
-      ["image/avif", "avif"],
-    ]);
-    const ext = mimeToExt.get(file.type);
-    if (!ext) {
-      return Response.json(
-        { error: { message: "Unsupported image type" } },
-        { status: 415 }
-      );
-    }
-
-    const uploadsDir = path.join(process.cwd(), "public", "uploads", "products");
-    await fs.mkdir(uploadsDir, { recursive: true });
-
-    const filename = `${id}-${Date.now()}.${ext}`;
-    const filePath = path.join(uploadsDir, filename);
-    const buffer = Buffer.from(await file.arrayBuffer());
-    await fs.writeFile(filePath, buffer);
-
-    const imageUrl = `/uploads/products/${filename}`;
-
-    if (product.imageUrl?.startsWith("/uploads/products/")) {
-      const oldPath = path.join(process.cwd(), "public", product.imageUrl.replace(/^\/+/, ""));
-      await fs.unlink(oldPath).catch(() => {});
-    }
+    await removeProductImageAsset(product.imageUrl);
 
     const data = await prisma.product.update({
       where: { id },

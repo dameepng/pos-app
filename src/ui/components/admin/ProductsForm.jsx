@@ -1,6 +1,7 @@
 "use client";
 
 import { Save, RotateCcw, PackagePlus, PencilLine } from "lucide-react";
+import Image from "next/image";
 import AdminField from "./AdminField";
 
 export default function ProductsForm({
@@ -136,9 +137,13 @@ export default function ProductsForm({
           <div className="flex items-center gap-4">
             <div className="h-16 w-16 rounded-xl bg-zinc-100 border border-zinc-200 overflow-hidden flex items-center justify-center text-[10px] font-bold text-zinc-400">
               {hasPreview || currentImageUrl ? (
-                <img
+                <Image
                   src={hasPreview ? imagePreviewUrl : currentImageUrl}
                   alt={form.name || "Product image"}
+                  width={64}
+                  height={64}
+                  sizes="64px"
+                  unoptimized
                   className="h-full w-full object-cover"
                 />
               ) : (

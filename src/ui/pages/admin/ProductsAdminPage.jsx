@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import ProductsForm from "@/ui/components/admin/ProductsForm";
 import ProductsToolbar from "@/ui/components/admin/ProductsToolbar";
 import ProductsList from "@/ui/components/admin/ProductsList";
@@ -67,12 +67,13 @@ export default function ProductsAdminPage() {
     }
   }
 
-  async function loadProducts({ page = currentPage } = {}) {
+  const loadProducts = useCallback(async ({ page } = {}) => {
+    const targetPage = page || 1;
     setError(null);
     const params = new URLSearchParams();
     if (debouncedQ.trim()) params.set("q", debouncedQ.trim());
     params.set("take", String(itemsPerPage));
-    params.set("skip", String((page - 1) * itemsPerPage));
+    params.set("skip", String((targetPage - 1) * itemsPerPage));
     if (filters.status) params.set("status", filters.status);
     if (filters.categoryId) params.set("categoryId", filters.categoryId);
     if (filters.stock) params.set("stock", filters.stock);
@@ -89,7 +90,7 @@ export default function ProductsAdminPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [debouncedQ, itemsPerPage, filters]);
 
   useEffect(() => {
     loadCategories();
@@ -105,7 +106,7 @@ export default function ProductsAdminPage() {
 
   useEffect(() => {
     loadProducts({ page: currentPage });
-  }, [currentPage, itemsPerPage, filters, debouncedQ]);
+  }, [currentPage, loadProducts]);
 
   function handleSearch(value) {
     setQ(value);

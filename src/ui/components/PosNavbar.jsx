@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   ShoppingCart,
   LogOut,
@@ -37,9 +38,12 @@ export default function PosNavbar({ user }) {
           {/* Logo & Brand */}
           <div className="flex items-center gap-3">
             <div className="bg-white h-10 w-10 rounded-xl border border-zinc-200 shadow-sm overflow-hidden">
-              <img
+              <Image
                 src="/logopos.svg"
                 alt="POS"
+                width={40}
+                height={40}
+                sizes="40px"
                 className="h-full w-full object-contain"
               />
             </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 
 const DEFAULT_TEMPLATE = {
   storeName: "Toko Maju Terus",
@@ -250,11 +251,16 @@ export default function PrinterSettingsPage() {
 
           <div className="mt-4 rounded-xl border border-dashed p-4 bg-zinc-50 font-mono text-xs text-zinc-800">
             {preview.logoUrl ? (
-              <img
-                src={preview.logoUrl}
-                alt="Preview logo"
-                className="h-12 mx-auto object-contain mb-2"
-              />
+              <div className="relative mx-auto mb-2 h-12 w-28">
+                <Image
+                  src={preview.logoUrl}
+                  alt="Preview logo"
+                  fill
+                  sizes="112px"
+                  unoptimized={preview.logoUrl.startsWith("http")}
+                  className="object-contain"
+                />
+              </div>
             ) : null}
             <div className="text-center font-bold">{preview.storeName}</div>
             <div className="text-center text-zinc-600 mt-1">{preview.storeAddress}</div>

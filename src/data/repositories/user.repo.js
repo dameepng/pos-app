@@ -12,6 +12,10 @@ export async function updateUserById(id, data) {
   return prisma.user.update({ where: { id }, data });
 }
 
+export async function createUser(data) {
+  return prisma.user.create({ data });
+}
+
 export async function listUsers({ q = "", take = 50, skip = 0 } = {}) {
   const where = q
     ? {

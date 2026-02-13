@@ -1,5 +1,8 @@
-import { adminUpdateUser } from "@/domain/auth/auth.service";
-import { validateAdminUpdateUserBody } from "@/api/validators/user.validator";
+import { adminCreateUser, adminUpdateUser } from "@/domain/auth/auth.service";
+import {
+  validateAdminCreateUserBody,
+  validateAdminUpdateUserBody,
+} from "@/api/validators/user.validator";
 import { toHttpResponse } from "@/lib/errors/toHttpResponse";
 import { listUsers } from "@/data/repositories/user.repo";
 
@@ -47,6 +50,30 @@ export async function adminListUsersHandler(req) {
     const data = await listUsers({ q, take, skip });
 
     return Response.json({ data }, { status: 200 });
+  } catch (err) {
+    return toHttpResponse(err);
+  }
+}
+
+export async function adminCreateUserHandler(req) {
+  try {
+    const body = await req.json();
+    const validation = validateAdminCreateUserBody(body);
+    if (validation.error) {
+      return Response.json(
+        { error: { message: validation.error.message } },
+        { status: validation.error.status }
+      );
+    }
+
+    const data = await adminCreateUser({
+      name: validation.value.name,
+      email: validation.value.email,
+      role: validation.value.role,
+      password: validation.value.password,
+    });
+
+    return Response.json({ data }, { status: 201 });
   } catch (err) {
     return toHttpResponse(err);
   }

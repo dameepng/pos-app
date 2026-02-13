@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Fragment, useEffect } from "react";
+import { useState, Fragment, useEffect, useCallback } from "react";
 import {
   Clock,
   ChevronDown,
@@ -69,7 +69,7 @@ export default function SalesTable({
   };
 
   // Fetch data dari API dengan PATH YANG BENAR
-  const fetchSales = async () => {
+  const fetchSales = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -108,11 +108,18 @@ export default function SalesTable({
     } finally {
       setLoading(false);
     }
-  };
+  }, [
+    currentPage,
+    itemsPerPage,
+    filters,
+    forcedStartDate,
+    forcedEndDate,
+    lockDateFilter,
+  ]);
 
   useEffect(() => {
     fetchSales();
-  }, [currentPage, itemsPerPage, filters, forcedStartDate, forcedEndDate, lockDateFilter]);
+  }, [fetchSales]);
 
   const goToPage = (page) => {
     if (pagination) {

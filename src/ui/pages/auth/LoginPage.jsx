@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -60,11 +61,14 @@ export default function LoginPage() {
             </p>
           </div>
 
-          <div className="flex w-full max-w-md aspect-[4/3] items-center justify-center rounded-2xl border-[3px] border-white bg-[#15110e]">
-            <img
+          <div className="relative flex w-full max-w-md aspect-[4/3] items-center justify-center rounded-2xl border-[3px] border-white bg-[#15110e]">
+            <Image
               src="/illustrationlogin.svg"
               alt="Ilustrasi login"
-              className="h-full w-full rounded-2xl object-contain"
+              fill
+              priority
+              sizes="(max-width: 768px) 100vw, 420px"
+              className="rounded-2xl object-contain"
             />
           </div>
         </section>
@@ -72,9 +76,12 @@ export default function LoginPage() {
         <section className="flex flex-col items-center justify-center gap-6 p-8 md:p-12">
           <div className="flex items-center justify-center gap-2 text-sm font-semibold text-slate-900">
             <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-white">
-              <img
+              <Image
                 src="/logopos.svg"
                 alt="Logo POS"
+                width={40}
+                height={40}
+                sizes="40px"
                 className="h-full w-full object-cover"
               />
             </div>

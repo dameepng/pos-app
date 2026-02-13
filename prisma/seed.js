@@ -2,51 +2,84 @@ const { PrismaClient } = require("@prisma/client");
 const bcrypt = require("bcryptjs");
 
 const prisma = new PrismaClient();
+const isProduction = process.env.NODE_ENV === "production";
+
+function requiredEnv(name) {
+  const value = String(process.env[name] || "").trim();
+  return value || null;
+}
+
+async function upsertUser({ name, email, role, password, mustChangePassword = false }) {
+  const passwordHash = await bcrypt.hash(password, 10);
+
+  await prisma.user.upsert({
+    where: { email },
+    update: {
+      name,
+      role,
+      passwordHash,
+      mustChangePassword,
+    },
+    create: {
+      name,
+      email,
+      role,
+      passwordHash,
+      mustChangePassword,
+    },
+  });
+}
 
 async function main() {
   console.log("Seeding database...");
 
   // 1) Users
-  const adminEmail = "damee@png.id";
-  const cashierEmail = "cashier@local.test";
+  if (isProduction) {
+    const ownerName = requiredEnv("BOOTSTRAP_OWNER_NAME");
+    const ownerEmail = requiredEnv("BOOTSTRAP_OWNER_EMAIL");
+    const ownerPassword = requiredEnv("BOOTSTRAP_OWNER_PASSWORD");
 
-  // default password untuk local dev
-  const adminPassword = "password123";
-  const cashierPassword = "password123";
+    if (ownerName && ownerEmail && ownerPassword) {
+      await upsertUser({
+        name: ownerName,
+        email: ownerEmail.toLowerCase(),
+        role: "OWNER",
+        password: ownerPassword,
+        mustChangePassword: true,
+      });
+      console.log("Bootstrap owner upserted for production.");
+    } else {
+      console.log(
+        "Production mode detected: skip default user seed. " +
+          "Set BOOTSTRAP_OWNER_NAME/EMAIL/PASSWORD to create initial owner."
+      );
+    }
+  } else {
+    const adminName = requiredEnv("DEV_SEED_OWNER_NAME") || "Admin";
+    const adminEmail = (requiredEnv("DEV_SEED_OWNER_EMAIL") || "owner@local.test").toLowerCase();
+    const adminPassword = requiredEnv("DEV_SEED_OWNER_PASSWORD") || "password123";
 
-  const adminHash = await bcrypt.hash(adminPassword, 10);
-  const cashierHash = await bcrypt.hash(cashierPassword, 10);
+    const cashierName = requiredEnv("DEV_SEED_CASHIER_NAME") || "Cashier";
+    const cashierEmail =
+      (requiredEnv("DEV_SEED_CASHIER_EMAIL") || "cashier@local.test").toLowerCase();
+    const cashierPassword = requiredEnv("DEV_SEED_CASHIER_PASSWORD") || "password123";
 
-  await prisma.user.upsert({
-    where: { email: adminEmail },
-    update: {
-      // pastikan kalau user sudah ada, hash tetap sinkron (dev friendly)
-      passwordHash: adminHash,
-      role: "OWNER",
-      name: "Admin",
-    },
-    create: {
-      name: "Admin",
+    await upsertUser({
+      name: adminName,
       email: adminEmail,
       role: "OWNER",
-      passwordHash: adminHash,
-    },
-  });
+      password: adminPassword,
+      mustChangePassword: false,
+    });
 
-  await prisma.user.upsert({
-    where: { email: cashierEmail },
-    update: {
-      passwordHash: cashierHash,
-      role: "CASHIER",
-      name: "Cashier",
-    },
-    create: {
-      name: "Cashier",
+    await upsertUser({
+      name: cashierName,
       email: cashierEmail,
       role: "CASHIER",
-      passwordHash: cashierHash,
-    },
-  });
+      password: cashierPassword,
+      mustChangePassword: false,
+    });
+  }
 
   // 2) Category
   const category = await prisma.category.upsert({
@@ -98,10 +131,7 @@ async function main() {
 
   console.log("Seed complete.");
   console.log({
-    adminEmail,
-    adminPassword,
-    cashierEmail,
-    cashierPassword,
+    env: isProduction ? "production" : "development",
     productId: product.id,
     receiptTemplateId: "default",
   });

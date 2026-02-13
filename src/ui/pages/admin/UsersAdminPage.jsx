@@ -1,24 +1,32 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 
 export default function UsersAdminPage() {
   const [q, setQ] = useState("");
   const [data, setData] = useState({ items: [], total: 0, take: 20, skip: 0 });
   const [busy, setBusy] = useState(false);
+  const [createBusy, setCreateBusy] = useState(false);
   const [error, setError] = useState(null);
+  const [createError, setCreateError] = useState(null);
   const [selected, setSelected] = useState(null);
   const [form, setForm] = useState({ email: "", role: "CASHIER", password: "" });
+  const [createForm, setCreateForm] = useState({
+    name: "",
+    email: "",
+    role: "CASHIER",
+    password: "",
+  });
   const [currentUser, setCurrentUser] = useState(null);
 
-  const mode = useMemo(() => (selected ? "edit" : "idle"), [selected]);
   const isSelfSelected = selected?.id && currentUser?.id && selected.id === currentUser.id;
 
-  async function loadUsers({ skip = 0 } = {}) {
+  const loadUsers = useCallback(async ({ skip = 0, qOverride = "" } = {}) => {
     setError(null);
     const params = new URLSearchParams();
-    if (q.trim()) params.set("q", q.trim());
+    const searchText = String(qOverride).trim();
+    if (searchText) params.set("q", searchText);
     params.set("take", "20");
     params.set("skip", String(skip));
 
@@ -30,7 +38,7 @@ export default function UsersAdminPage() {
     } catch (e) {
       setError(e.message);
     }
-  }
+  }, []);
 
   async function loadCurrentUser() {
     try {
@@ -43,14 +51,14 @@ export default function UsersAdminPage() {
   }
 
   useEffect(() => {
-    loadUsers({ skip: 0 });
+    loadUsers({ skip: 0, qOverride: "" });
     loadCurrentUser();
-  }, []);
+  }, [loadUsers]);
 
   useEffect(() => {
-    const t = setTimeout(() => loadUsers({ skip: 0 }), 300);
+    const t = setTimeout(() => loadUsers({ skip: 0, qOverride: q }), 300);
     return () => clearTimeout(t);
-  }, [q]);
+  }, [q, loadUsers]);
 
   function resetForm() {
     setSelected(null);
@@ -91,9 +99,112 @@ export default function UsersAdminPage() {
     }
   }
 
+  async function submitCreate() {
+    setCreateBusy(true);
+    setCreateError(null);
+
+    try {
+      const res = await fetch("/api/admin/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(createForm),
+      });
+
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error?.message || "Failed create user");
+
+      setCreateForm({ name: "", email: "", role: "CASHIER", password: "" });
+      await loadUsers({ skip: 0 });
+    } catch (e) {
+      setCreateError(e.message);
+    } finally {
+      setCreateBusy(false);
+    }
+  }
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-1 space-y-4">
+        <div className="bg-white border rounded-2xl shadow-sm p-5">
+          <h2 className="text-lg font-semibold text-zinc-900">Tambah User</h2>
+          <p className="text-xs text-zinc-500 mt-1">
+            Owner bisa membuat akun role CASHIER atau OPS.
+          </p>
+
+          <div className="mt-4 space-y-3">
+            <label className="block text-xs font-medium text-zinc-600">
+              Nama
+            </label>
+            <input
+              className="w-full border rounded-lg px-3 py-2 text-sm"
+              value={createForm.name}
+              onChange={(e) =>
+                setCreateForm((prev) => ({ ...prev, name: e.target.value }))
+              }
+              placeholder="Nama user"
+              disabled={createBusy}
+            />
+
+            <label className="block text-xs font-medium text-zinc-600">
+              Email
+            </label>
+            <input
+              className="w-full border rounded-lg px-3 py-2 text-sm"
+              value={createForm.email}
+              onChange={(e) =>
+                setCreateForm((prev) => ({ ...prev, email: e.target.value }))
+              }
+              placeholder="user@email.com"
+              disabled={createBusy}
+            />
+
+            <label className="block text-xs font-medium text-zinc-600">
+              Role
+            </label>
+            <select
+              className="w-full border rounded-lg px-3 py-2 text-sm"
+              value={createForm.role}
+              onChange={(e) =>
+                setCreateForm((prev) => ({ ...prev, role: e.target.value }))
+              }
+              disabled={createBusy}
+            >
+              <option value="CASHIER">CASHIER</option>
+              <option value="OPS">OPS</option>
+            </select>
+
+            <label className="block text-xs font-medium text-zinc-600">
+              Password
+            </label>
+            <input
+              type="password"
+              className="w-full border rounded-lg px-3 py-2 text-sm"
+              value={createForm.password}
+              onChange={(e) =>
+                setCreateForm((prev) => ({ ...prev, password: e.target.value }))
+              }
+              placeholder="Minimal 8 karakter"
+              disabled={createBusy}
+            />
+
+            {createError && (
+              <div className="text-xs text-red-600 bg-red-50 border border-red-100 px-3 py-2 rounded-lg">
+                {createError}
+              </div>
+            )}
+
+            <div className="pt-2">
+              <button
+                onClick={submitCreate}
+                disabled={createBusy}
+                className="w-full bg-zinc-900 text-white text-sm font-medium px-4 py-2 rounded-lg disabled:opacity-50"
+              >
+                {createBusy ? "Menyimpan..." : "Tambah User"}
+              </button>
+            </div>
+          </div>
+        </div>
+
         <div className="bg-white border rounded-2xl shadow-sm p-5">
           <h2 className="text-lg font-semibold text-zinc-900">Kelola User</h2>
           <p className="text-xs text-zinc-500 mt-1">

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import Image from "next/image";
 
 function formatRp(n) {
   return `Rp ${Number(n || 0).toLocaleString("id-ID")}`;
@@ -190,6 +191,7 @@ export default function ProductSearch({ onSelect, categoryId, refreshKey }) {
                 const stock = p.qtyOnHand ?? 0;
                 const isLowStock = stock > 0 && stock <= 10;
                 const isOutOfStock = stock === 0;
+                const isRemoteImage = String(p.imageUrl || "").startsWith("http");
 
                 return (
                   <button
@@ -200,13 +202,15 @@ export default function ProductSearch({ onSelect, categoryId, refreshKey }) {
                       isOutOfStock ? "opacity-50 cursor-not-allowed" : ""
                     }`}
                   >
-                    <div className="aspect-[4/3] rounded-xl bg-gradient-to-br from-zinc-100 to-zinc-200 flex items-center justify-center text-xs text-zinc-600 overflow-hidden">
+                    <div className="relative aspect-[4/3] rounded-xl bg-gradient-to-br from-zinc-100 to-zinc-200 flex items-center justify-center text-xs text-zinc-600 overflow-hidden">
                       {p.imageUrl ? (
-                        <img
+                        <Image
                           src={p.imageUrl}
                           alt={p.name || "Product image"}
-                          className="h-full w-full object-cover"
-                          loading="lazy"
+                          fill
+                          sizes="(max-width: 768px) 50vw, 25vw"
+                          unoptimized={isRemoteImage}
+                          className="object-cover"
                         />
                       ) : (
                         p.sku || "SKU"

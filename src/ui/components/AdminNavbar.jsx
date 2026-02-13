@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
+import Image from "next/image";
 import {
   LayoutDashboard,
   Package,
@@ -79,9 +80,12 @@ export default function AdminNavbar({ user }) {
           <div className="flex items-center justify-between h-16">
             <Link href="/admin" className="flex items-center gap-2.5 group">
               <div className="bg-white h-9 w-9 rounded-lg border border-zinc-200 group-hover:border-zinc-300 transition-colors overflow-hidden">
-                <img
+                <Image
                   src="/logopos.svg"
                   alt="POS Admin"
+                  width={36}
+                  height={36}
+                  sizes="36px"
                   className="h-full w-full object-contain"
                 />
               </div>
@@ -164,9 +168,12 @@ export default function AdminNavbar({ user }) {
         <div className="h-16 px-5 flex items-center border-b border-zinc-200">
           <Link href="/admin" className="flex items-center gap-2.5 group">
             <div className="bg-white h-9 w-9 rounded-lg border border-zinc-200 group-hover:border-zinc-300 transition-colors overflow-hidden">
-              <img
+              <Image
                 src="/logopos.svg"
                 alt="POS Admin"
+                width={36}
+                height={36}
+                sizes="36px"
                 className="h-full w-full object-contain"
               />
             </div>

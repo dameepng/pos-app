@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { printReceipt } from "@/ui/utils/printReceipt";
 import PaymentSuccessDialog from "@/ui/components/pos/PaymentSuccessDialog";
 
@@ -77,19 +77,19 @@ export default function PaymentPanel({
     });
   }
 
-  async function fetchSaleDetail(saleId) {
+  const fetchSaleDetail = useCallback(async (saleId) => {
     const res = await fetch(`/api/sales/${saleId}`);
     const json = await res.json();
     if (!res.ok) throw new Error(json.error?.message || "Failed load sale");
     return json.data;
-  }
+  }, []);
 
-  async function fetchReceiptTemplate() {
+  const fetchReceiptTemplate = useCallback(async () => {
     const res = await fetch("/api/receipt-template");
     const json = await res.json();
     if (!res.ok) throw new Error(json.error?.message || "Failed load template");
     return json.data;
-  }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -107,14 +107,14 @@ export default function PaymentPanel({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [fetchReceiptTemplate]);
 
-  async function prepareReceipt({
+  const prepareReceipt = useCallback(async ({
     saleId,
     paymentMethod,
     paidAmount,
     change,
-  }) {
+  }) => {
     try {
       const [detail, latestTemplate] = await Promise.all([
         fetchSaleDetail(saleId),
@@ -154,7 +154,7 @@ export default function PaymentPanel({
       console.error(e);
       alert(e.message || "Gagal cetak struk");
     }
-  }
+  }, [fetchReceiptTemplate, fetchSaleDetail, paperWidth, receiptTemplate]);
 
   function handlePrintReceipt() {
     if (!lastReceipt) return;
@@ -303,7 +303,7 @@ export default function PaymentPanel({
     return () => {
       cancelled = true;
     };
-  }, [pollSaleId, onClear, onPaidSuccess]);
+  }, [pollSaleId, onClear, onPaidSuccess, prepareReceipt]);
 
   const change = Math.max(0, paidNumber - total);
 

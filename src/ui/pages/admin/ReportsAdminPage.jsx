@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Calendar, Filter, Download, RefreshCw } from "lucide-react";
 import ReportSummary from "@/ui/components/pos/ReportSummary";
 import SalesTable from "@/ui/components/admin/SalesTable";
@@ -57,7 +57,7 @@ export default function ReportsAdminPage() {
     setDateRange({ startDate: todayStr, endDate: todayStr });
   }, [isOps]);
 
-  const fetchReport = async () => {
+  const fetchReport = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -92,11 +92,11 @@ export default function ReportsAdminPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [dateRange.endDate, dateRange.startDate, period]);
 
   useEffect(() => {
     fetchReport();
-  }, [dateRange, period]);
+  }, [fetchReport]);
 
   const handleDateRangeChange = (start, end) => {
     setDateRange({ startDate: start, endDate: end });

@@ -1,5 +1,10 @@
 import bcrypt from "bcryptjs";
-import { findUserByEmail, findUserById, updateUserById } from "@/data/repositories/user.repo";
+import {
+  createUser,
+  findUserByEmail,
+  findUserById,
+  updateUserById,
+} from "@/data/repositories/user.repo";
 import { AppError } from "@/lib/errors/AppError";
 import { ERROR_CODES } from "@/lib/errors/errorCodes";
 import { signSession, verifySession } from "@/lib/auth/jwt";
@@ -100,4 +105,31 @@ export async function adminUpdateUser({ userId, email, role, password }) {
 
   const updated = await updateUserById(userId, data);
   return { id: updated.id, email: updated.email, role: updated.role };
+}
+
+export async function adminCreateUser({ name, email, role, password }) {
+  const normalizedEmail = String(email || "").trim().toLowerCase();
+  const normalizedName = String(name || "").trim();
+
+  const existing = await findUserByEmail(normalizedEmail);
+  if (existing) {
+    throw new AppError(ERROR_CODES.CONFLICT, "Email already exists", 409);
+  }
+
+  const passwordHash = await bcrypt.hash(password, 10);
+  const created = await createUser({
+    name: normalizedName,
+    email: normalizedEmail,
+    role,
+    passwordHash,
+    mustChangePassword: true,
+  });
+
+  return {
+    id: created.id,
+    name: created.name,
+    email: created.email,
+    role: created.role,
+    mustChangePassword: created.mustChangePassword,
+  };
 }
