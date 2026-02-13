@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import ProductSearch from "@/ui/components/pos/ProductSearch";
 import Cart from "@/ui/components/pos/Cart";
 import PaymentPanel from "@/ui/components/pos/PaymentPanel";
@@ -11,6 +11,22 @@ export default function PosPage() {
   const [sale, setSale] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [customerName, setCustomerName] = useState("");
+  const [paperWidth, setPaperWidth] = useState("80mm");
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const saved = window.localStorage.getItem("pos:paperWidth");
+    if (saved === "58mm" || saved === "80mm" || saved === "100mm") {
+      setPaperWidth(saved);
+    }
+  }, []);
+
+  function handlePaperWidthChange(nextWidth) {
+    setPaperWidth(nextWidth);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("pos:paperWidth", nextWidth);
+    }
+  }
 
   function addToCart(product) {
     setCartItems((prev) => {
@@ -137,6 +153,24 @@ export default function PosPage() {
               <div className="p-4 border-b">
                 <h2 className="text-sm font-semibold">Payment</h2>
                 <p className="text-xs text-zinc-500">Cash atau Midtrans.</p>
+                <div className="mt-3 flex items-center gap-2">
+                  <label
+                    htmlFor="paperWidth"
+                    className="text-xs font-medium text-zinc-600"
+                  >
+                    Paper Size
+                  </label>
+                  <select
+                    id="paperWidth"
+                    value={paperWidth}
+                    onChange={(e) => handlePaperWidthChange(e.target.value)}
+                    className="rounded-lg border border-zinc-200 bg-white px-2 py-1 text-xs text-zinc-800"
+                  >
+                    <option value="58mm">58mm</option>
+                    <option value="80mm">80mm</option>
+                    <option value="100mm">100mm</option>
+                  </select>
+                </div>
               </div>
               <div className="p-4">
                 <PaymentPanel
@@ -147,6 +181,7 @@ export default function PosPage() {
                   onClear={clearCart}
                   onPaidSuccess={refreshProducts}
                   customerName={customerName}
+                  paperWidth={paperWidth}
                 />
               </div>
             </div>

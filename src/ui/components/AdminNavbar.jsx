@@ -14,6 +14,7 @@ import {
   Monitor,
   Users,
   KeyRound,
+  Printer,
 } from "lucide-react";
 
 export default function AdminNavbar({ user }) {
@@ -47,6 +48,12 @@ export default function AdminNavbar({ user }) {
       href: "/admin/change-password",
       label: "Change Password",
       icon: KeyRound,
+      roles: ["OWNER"],
+    },
+    {
+      href: "/admin/printer-settings",
+      label: "Printer Settings",
+      icon: Printer,
       roles: ["OWNER"],
     },
   ].filter((item) => item.roles?.includes(user?.role));

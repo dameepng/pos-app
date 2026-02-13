@@ -26,6 +26,17 @@ function formatDateTime(dateString) {
   return `${date} ${time}`;
 }
 
+function normalizePaperWidth(value) {
+  const allowed = new Set(["58mm", "80mm", "100mm"]);
+  return allowed.has(value) ? value : "80mm";
+}
+
+function barcodeBoxWidth(paperWidth) {
+  if (paperWidth === "58mm") return "50mm";
+  if (paperWidth === "100mm") return "92mm";
+  return "72mm";
+}
+
 function code39Pattern(ch) {
   const patterns = {
     "0": "nnnwwnwnn",
@@ -112,6 +123,7 @@ function buildCode39Svg(value) {
 }
 
 export function printReceipt({
+  paperWidth = "80mm",
   storeName = "Toko Maju Terus",
   storeAddress = "Jalan Raya Serpong, RT99/99 NO. 16",
   storePhone = "08123456789",
@@ -128,6 +140,8 @@ export function printReceipt({
   change = 0,
   barcodeValue,
 }) {
+  const normalizedPaperWidth = normalizePaperWidth(paperWidth);
+  const normalizedBarcodeBoxWidth = barcodeBoxWidth(normalizedPaperWidth);
   const barcodeText = barcodeValue || saleId || "";
   const barcodeSvg = barcodeText ? buildCode39Svg(barcodeText) : "";
 
@@ -155,11 +169,11 @@ export function printReceipt({
     <meta charset="utf-8" />
     <title>Struk</title>
     <style>
-      @page { size: 80mm auto; margin: 6mm; }
+      @page { size: ${normalizedPaperWidth} auto; margin: 6mm; }
       * { box-sizing: border-box; }
       body {
         margin: 0;
-        width: 80mm;
+        width: ${normalizedPaperWidth};
         font-family: "Courier New", monospace;
         color: #111;
       }
@@ -185,7 +199,7 @@ export function printReceipt({
       .footer { font-size: 11px; margin-top: 12px; }
       .barcode { margin-top: 8px; text-align: center; }
       .barcode-box {
-        width: 72mm;
+        width: ${normalizedBarcodeBoxWidth};
         margin: 0 auto;
         padding: 2mm 0;
         border-top: 1px dashed #bbb;

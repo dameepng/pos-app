@@ -20,7 +20,9 @@ export default function PaymentPanel({
   onClear,
   onPaidSuccess,
   customerName,
+  paperWidth = "80mm",
 }) {
+  const [receiptTemplate, setReceiptTemplate] = useState(null);
   const [paidAmount, setPaidAmount] = useState("");
   const paidNumber = useMemo(() => Number(paidAmount || 0), [paidAmount]);
 
@@ -82,6 +84,31 @@ export default function PaymentPanel({
     return json.data;
   }
 
+  async function fetchReceiptTemplate() {
+    const res = await fetch("/api/receipt-template");
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error?.message || "Failed load template");
+    return json.data;
+  }
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadTemplate() {
+      try {
+        const tpl = await fetchReceiptTemplate();
+        if (!cancelled) setReceiptTemplate(tpl);
+      } catch {
+        if (!cancelled) setReceiptTemplate(null);
+      }
+    }
+
+    loadTemplate();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   async function prepareReceipt({
     saleId,
     paymentMethod,
@@ -89,13 +116,27 @@ export default function PaymentPanel({
     change,
   }) {
     try {
-      const detail = await fetchSaleDetail(saleId);
+      const [detail, latestTemplate] = await Promise.all([
+        fetchSaleDetail(saleId),
+        fetchReceiptTemplate().catch(() => receiptTemplate),
+      ]);
+
+      if (latestTemplate) {
+        setReceiptTemplate(latestTemplate);
+      }
+
       const totalAmount = Number(detail?.total || 0);
       const paid = Number.isFinite(paidAmount) ? paidAmount : totalAmount;
       const changeAmount =
         Number.isFinite(change) ? change : Math.max(0, paid - totalAmount);
 
       const payload = {
+        paperWidth,
+        storeName: latestTemplate?.storeName || undefined,
+        storeAddress: latestTemplate?.storeAddress || undefined,
+        storePhone: latestTemplate?.storePhone || undefined,
+        footerText: latestTemplate?.footerText || undefined,
+        logoUrl: latestTemplate?.logoUrl || undefined,
         saleId: detail?.saleId || saleId,
         createdAt: detail?.createdAt,
         customerName: detail?.customerName,

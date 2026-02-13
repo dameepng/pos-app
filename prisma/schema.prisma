@@ -187,3 +187,15 @@ model StockMovement {
   @@index([type, createdAt])
   @@index([refSaleId])
 }
+
+model ReceiptTemplate {
+  id           String   @id @default(cuid())
+  storeName    String?
+  storeAddress String?
+  storePhone   String?
+  footerText   String?
+  logoUrl      String?
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
