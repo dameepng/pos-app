@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import {
   createUser,
+  findAuthUserByEmail,
   findUserByEmail,
   findUserById,
   updateUserById,
@@ -10,9 +11,54 @@ import { ERROR_CODES } from "@/lib/errors/errorCodes";
 import { signSession, verifySession } from "@/lib/auth/jwt";
 import { getSessionToken } from "@/lib/auth/cookies";
 
+const AUTH_LOGIN_USER_CACHE_TTL_MS = Number(
+  process.env.AUTH_LOGIN_USER_CACHE_TTL_MS || 60000
+);
+const authLoginUserCache = new Map();
+
+function normalizeEmail(email) {
+  return String(email || "").trim().toLowerCase();
+}
+
+function getCachedLoginUser(email) {
+  const hit = authLoginUserCache.get(email);
+  if (!hit) return null;
+  if (Date.now() >= hit.expiresAt) {
+    authLoginUserCache.delete(email);
+    return null;
+  }
+  return hit.value;
+}
+
+function setCachedLoginUser(email, user) {
+  authLoginUserCache.set(email, {
+    value: user,
+    expiresAt: Date.now() + AUTH_LOGIN_USER_CACHE_TTL_MS,
+  });
+}
+
+function invalidateCachedLoginUser(email) {
+  authLoginUserCache.delete(normalizeEmail(email));
+}
+
+function clearCachedLoginUsers() {
+  authLoginUserCache.clear();
+}
+
 export async function loginWithEmailPassword({ email, password }) {
-  const user = await findUserByEmail(email);
+  const normalizedEmail = normalizeEmail(email);
+  let user = getCachedLoginUser(normalizedEmail);
   if (!user) {
+    user = await findAuthUserByEmail(normalizedEmail);
+    if (user) {
+      setCachedLoginUser(normalizedEmail, user);
+    }
+  }
+
+  if (!user) {
+    throw new AppError(ERROR_CODES.UNAUTHORIZED, "Email/password salah", 401);
+  }
+  if (!user.passwordHash) {
     throw new AppError(ERROR_CODES.UNAUTHORIZED, "Email/password salah", 401);
   }
 
@@ -78,6 +124,7 @@ export async function changeOwnPassword({ userId, currentPassword, newPassword }
     passwordHash: newHash,
     mustChangePassword: false,
   });
+  invalidateCachedLoginUser(user.email);
 
   return { ok: true };
 }
@@ -104,6 +151,7 @@ export async function adminUpdateUser({ userId, email, role, password }) {
   }
 
   const updated = await updateUserById(userId, data);
+  clearCachedLoginUsers();
   return { id: updated.id, email: updated.email, role: updated.role };
 }
 
@@ -124,6 +172,8 @@ export async function adminCreateUser({ name, email, role, password }) {
     passwordHash,
     mustChangePassword: true,
   });
+
+  invalidateCachedLoginUser(created.email);
 
   return {
     id: created.id,

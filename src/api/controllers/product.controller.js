@@ -24,6 +24,10 @@ import {
   getProductsByCategory,
   searchProducts,
 } from "@/domain/products/product.service";
+import {
+  invalidateAdminProductsCaches,
+  listAdminProducts,
+} from "@/domain/products/adminProducts.service";
 import { toHttpResponse } from "@/lib/errors/toHttpResponse";
 
 async function removeProductImageAsset(imageUrl) {
@@ -103,37 +107,8 @@ export async function adminListProductsHandler(req) {
     const { q, take, skip, status, categoryId, stock } =
       parseAdminListProductsQuery(req);
 
-    const where = {
-      ...(q
-        ? {
-            OR: [
-              { name: { contains: q, mode: "insensitive" } },
-              { sku: { contains: q, mode: "insensitive" } },
-              { barcode: { contains: q, mode: "insensitive" } },
-            ],
-          }
-        : {}),
-      ...(status
-        ? { isActive: status === "active" }
-        : {}),
-      ...(categoryId ? { categoryId } : {}),
-      ...(stock === "low"
-        ? { inventory: { qtyOnHand: { lt: 5 } } }
-        : {}),
-    };
-
-    const [items, total] = await Promise.all([
-      prisma.product.findMany({
-        where,
-        include: { category: true, inventory: true },
-        orderBy: { createdAt: "desc" },
-        take,
-        skip,
-      }),
-      prisma.product.count({ where }),
-    ]);
-
-    return Response.json({ data: { items, total, take, skip } }, { status: 200 });
+    const data = await listAdminProducts({ q, take, skip, status, categoryId, stock });
+    return Response.json({ data }, { status: 200 });
   } catch (err) {
     return toHttpResponse(err);
   }
@@ -167,6 +142,7 @@ export async function adminCreateProductHandler(req) {
       include: { category: true, inventory: true },
     });
 
+    invalidateAdminProductsCaches();
     return Response.json({ data }, { status: 201 });
   } catch (err) {
     return toHttpResponse(err);
@@ -222,6 +198,7 @@ export async function adminUpdateProductHandler(req, { params }) {
       include: { category: true, inventory: true },
     });
 
+    invalidateAdminProductsCaches();
     return Response.json({ data }, { status: 200 });
   } catch (err) {
     return toHttpResponse(err);
@@ -241,6 +218,7 @@ export async function adminPatchProductHandler(req, { params }) {
       include: { category: true, inventory: true },
     });
 
+    invalidateAdminProductsCaches();
     return Response.json({ data }, { status: 200 });
   } catch (err) {
     return toHttpResponse(err);
@@ -267,6 +245,7 @@ export async function adminDeleteProductHandler(req, { params }) {
 
     await removeProductImageAsset(product.imageUrl);
 
+    invalidateAdminProductsCaches();
     return Response.json({ data }, { status: 200 });
   } catch (err) {
     if (
@@ -344,6 +323,7 @@ export async function adminUploadProductImageHandler(req, { params }) {
       include: { category: true, inventory: true },
     });
 
+    invalidateAdminProductsCaches();
     return Response.json({ data }, { status: 200 });
   } catch (err) {
     return toHttpResponse(err);

@@ -1,11 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ProductsForm from "@/ui/components/admin/ProductsForm";
 import ProductsToolbar from "@/ui/components/admin/ProductsToolbar";
 import ProductsList from "@/ui/components/admin/ProductsList";
 
-export default function ProductsAdminPage() {
+export default function ProductsAdminPage({
+  initialRole = null,
+  initialCategories = [],
+  initialData = null,
+}) {
   const [q, setQ] = useState("");
   const [debouncedQ, setDebouncedQ] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -16,12 +20,13 @@ export default function ProductsAdminPage() {
     stock: "",
   });
   const [showFilters, setShowFilters] = useState(false);
-  const [data, setData] = useState({ items: [], total: 0, take: 10, skip: 0 });
-  const [categories, setCategories] = useState([]);
+  const [data, setData] = useState(initialData || { items: [], total: 0, take: 10, skip: 0 });
+  const [categories, setCategories] = useState(initialCategories || []);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [role, setRole] = useState(null);
+  const [loading, setLoading] = useState(!initialData);
+  const [role, setRole] = useState(initialRole);
+  const skippedInitialProductsFetchRef = useRef(false);
 
   const [form, setForm] = useState({
     id: null,
@@ -42,6 +47,8 @@ export default function ProductsAdminPage() {
   const isOwner = role === "OWNER";
 
   useEffect(() => {
+    if (initialRole) return;
+
     const loadMe = async () => {
       try {
         const res = await fetch("/api/auth/me");
@@ -53,7 +60,7 @@ export default function ProductsAdminPage() {
     };
 
     loadMe();
-  }, []);
+  }, [initialRole]);
 
   async function loadCategories() {
     try {
@@ -93,8 +100,9 @@ export default function ProductsAdminPage() {
   }, [debouncedQ, itemsPerPage, filters]);
 
   useEffect(() => {
+    if (initialCategories?.length) return;
     loadCategories();
-  }, []);
+  }, [initialCategories]);
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -105,8 +113,12 @@ export default function ProductsAdminPage() {
   }, [q]);
 
   useEffect(() => {
+    if (!skippedInitialProductsFetchRef.current && initialData && currentPage === 1) {
+      skippedInitialProductsFetchRef.current = true;
+      return;
+    }
     loadProducts({ page: currentPage });
-  }, [currentPage, loadProducts]);
+  }, [currentPage, loadProducts, initialData]);
 
   function handleSearch(value) {
     setQ(value);

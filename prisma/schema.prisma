@@ -101,6 +101,8 @@ model Product {
 
   @@index([name])
   @@index([categoryId])
+  @@index([createdAt])
+  @@index([isActive, categoryId, createdAt])
 }
 
 model Inventory {

@@ -4,6 +4,19 @@ export async function findUserByEmail(email) {
   return prisma.user.findUnique({ where: { email } });
 }
 
+export async function findAuthUserByEmail(email) {
+  return prisma.user.findUnique({
+    where: { email },
+    select: {
+      id: true,
+      email: true,
+      role: true,
+      passwordHash: true,
+      mustChangePassword: true,
+    },
+  });
+}
+
 export async function findUserById(id) {
   return prisma.user.findUnique({ where: { id } });
 }
