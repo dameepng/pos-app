@@ -260,6 +260,7 @@ export default function AdminHomePage() {
             </div>
             <Link
               href="/admin/products"
+              prefetch={false}
               className="text-xs text-zinc-500 hover:text-zinc-900 flex items-center gap-1"
             >
               Kelola Stock <ArrowRight size={12} />
@@ -306,6 +307,7 @@ export default function AdminHomePage() {
           </div>
           <Link
             href="/admin/reports"
+            prefetch={false}
             className="text-xs text-zinc-500 hover:text-zinc-900 flex items-center gap-1"
           >
             Lihat Semua <ArrowRight size={12} />

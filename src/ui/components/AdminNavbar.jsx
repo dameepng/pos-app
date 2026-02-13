@@ -78,7 +78,7 @@ export default function AdminNavbar({ user }) {
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-zinc-200 lg:hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-16">
-            <Link href="/admin" className="flex items-center gap-2.5 group">
+            <Link href="/admin" prefetch={false} className="flex items-center gap-2.5 group">
               <div className="bg-white h-9 w-9 rounded-lg border border-zinc-200 group-hover:border-zinc-300 transition-colors overflow-hidden">
                 <Image
                   src="/logopos.svg"
@@ -122,6 +122,7 @@ export default function AdminNavbar({ user }) {
                     <Link
                       key={item.href}
                       href={item.href}
+                      prefetch={false}
                       onClick={() => setIsMenuOpen(false)}
                       className={`flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors ${
                         isActive
@@ -166,7 +167,7 @@ export default function AdminNavbar({ user }) {
       {/* Desktop: fixed left sidebar */}
       <aside className="hidden lg:flex lg:fixed lg:inset-y-0 lg:w-56 lg:flex-col bg-white border-r border-zinc-200">
         <div className="h-16 px-5 flex items-center border-b border-zinc-200">
-          <Link href="/admin" className="flex items-center gap-2.5 group">
+          <Link href="/admin" prefetch={false} className="flex items-center gap-2.5 group">
             <div className="bg-white h-9 w-9 rounded-lg border border-zinc-200 group-hover:border-zinc-300 transition-colors overflow-hidden">
               <Image
                 src="/logopos.svg"
@@ -201,6 +202,7 @@ export default function AdminNavbar({ user }) {
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch={false}
                 className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                   isActive
                     ? "bg-zinc-100 text-zinc-900"
