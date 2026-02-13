@@ -3,6 +3,13 @@ import { ERROR_CODES } from "../../lib/errors/errorCodes.js";
 import { prisma } from "../../data/prisma/client.js";
 import { getSaleForPayment } from "../../data/repositories/saleRead.repo.js";
 
+const CASH_PAYMENT_TX_MAX_WAIT_MS = Number(
+  process.env.CASH_PAYMENT_TX_MAX_WAIT_MS || 10000
+);
+const CASH_PAYMENT_TX_TIMEOUT_MS = Number(
+  process.env.CASH_PAYMENT_TX_TIMEOUT_MS || 20000
+);
+
 // helper: deteksi check constraint inventory qty non-negative
 function isInventoryNonNegativeViolation(err) {
   const msg = String(err?.message || "");
@@ -130,7 +137,11 @@ export async function paySaleByCash({ saleId, cashierId, paidAmount }) {
           paymentId: payment.id,
         };
       },
-      { isolationLevel: "Serializable" }
+      {
+        isolationLevel: "Serializable",
+        maxWait: CASH_PAYMENT_TX_MAX_WAIT_MS,
+        timeout: CASH_PAYMENT_TX_TIMEOUT_MS,
+      }
     );
 
     return result;
