@@ -1,6 +1,39 @@
 import { prisma } from "../../data/prisma/client.js";
 
+const DASHBOARD_CACHE_TTL_MS = Number(process.env.ADMIN_DASHBOARD_CACHE_TTL_MS || 15000);
+let dashboardCache = {
+  value: null,
+  expiresAt: 0,
+};
+
+async function getSalesCostTotal({ startDate, endDate = null }) {
+  const endClause = endDate ? prisma.$queryRaw`
+    SELECT COALESCE(SUM(si.qty * COALESCE(p.cost, 0)), 0) AS total
+    FROM "SaleItem" si
+    JOIN "Sale" s ON s.id = si."saleId"
+    LEFT JOIN "Product" p ON p.id = si."productId"
+    WHERE s."createdAt" >= ${startDate}
+      AND s."createdAt" <= ${endDate}
+      AND s.status IN ('PENDING', 'PAID')
+  ` : prisma.$queryRaw`
+    SELECT COALESCE(SUM(si.qty * COALESCE(p.cost, 0)), 0) AS total
+    FROM "SaleItem" si
+    JOIN "Sale" s ON s.id = si."saleId"
+    LEFT JOIN "Product" p ON p.id = si."productId"
+    WHERE s."createdAt" >= ${startDate}
+      AND s.status IN ('PENDING', 'PAID')
+  `;
+
+  const rows = await endClause;
+  return Number(rows?.[0]?.total || 0);
+}
+
 export async function getAdminDashboard() {
+  const nowTs = Date.now();
+  if (dashboardCache.value && nowTs < dashboardCache.expiresAt) {
+    return dashboardCache.value;
+  }
+
   const startOfDay = new Date();
   startOfDay.setHours(0, 0, 0, 0);
 
@@ -13,11 +46,11 @@ export async function getAdminDashboard() {
 
   const todaySalesWhere = {
     createdAt: { gte: startOfDay, lte: endOfDay },
-    status: { not: "CANCELLED" },
+    status: { in: ["PENDING", "PAID"] },
   };
   const monthSalesWhere = {
     createdAt: { gte: startOfMonth },
-    status: { not: "CANCELLED" },
+    status: { in: ["PENDING", "PAID"] },
   };
   const monthSaleItemsWhere = {
     sale: monthSalesWhere,
@@ -31,8 +64,8 @@ export async function getAdminDashboard() {
     topProductsByQty,
     lowStock,
     recentSales,
-    todayCostItems,
-    monthCostItems,
+    todayCost,
+    monthCost,
   ] = await Promise.all([
     prisma.sale.aggregate({
       where: todaySalesWhere,
@@ -92,33 +125,12 @@ export async function getAdminDashboard() {
       orderBy: { createdAt: "desc" },
       take: 5,
     }),
-    prisma.saleItem.findMany({
-      where: { sale: todaySalesWhere },
-      select: {
-        qty: true,
-        product: { select: { cost: true } },
-      },
-    }),
-    prisma.saleItem.findMany({
-      where: monthSaleItemsWhere,
-      select: {
-        qty: true,
-        product: { select: { cost: true } },
-      },
-    }),
+    getSalesCostTotal({ startDate: startOfDay, endDate: endOfDay }),
+    getSalesCostTotal({ startDate: startOfMonth }),
   ]);
 
   const todayRevenue = todayAgg._sum.total || 0;
   const monthRevenue = monthAgg._sum.total || 0;
-
-  const todayCost = todayCostItems.reduce(
-    (sum, item) => sum + item.qty * Number(item.product?.cost || 0),
-    0
-  );
-  const monthCost = monthCostItems.reduce(
-    (sum, item) => sum + item.qty * Number(item.product?.cost || 0),
-    0
-  );
 
   const todayProfit = todayRevenue - todayCost;
   const monthProfit = monthRevenue - monthCost;
@@ -170,7 +182,7 @@ export async function getAdminDashboard() {
     paymentMethod: s.payments[0]?.method === "CASH" ? "CASH" : "QRIS",
   }));
 
-  return {
+  const dashboard = {
     today: {
       revenue: todayRevenue,
       cost: todayCost,
@@ -190,4 +202,11 @@ export async function getAdminDashboard() {
     lowStockCount: lowStock.length,
     recentSales: recentSalesMapped,
   };
+
+  dashboardCache = {
+    value: dashboard,
+    expiresAt: Date.now() + DASHBOARD_CACHE_TTL_MS,
+  };
+
+  return dashboard;
 }

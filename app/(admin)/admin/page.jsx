@@ -1,4 +1,5 @@
 import { getAuthUserFromRequest } from "@/domain/auth/auth.service";
+import { getAdminDashboard } from "@/domain/dashboard/dashboard.service";
 import { redirect } from "next/navigation";
 import AdminHomePage from "@/ui/pages/admin/AdminHomePage";
 
@@ -17,5 +18,7 @@ export default async function Page() {
     redirect("/pos");
   }
 
-  return <AdminHomePage />;
+  const dashboard = await getAdminDashboard();
+
+  return <AdminHomePage initialDashboard={dashboard} />;
 }

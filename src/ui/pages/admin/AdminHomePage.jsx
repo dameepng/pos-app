@@ -27,12 +27,14 @@ function formatDateTime(dateString) {
   });
 }
 
-export default function AdminHomePage() {
-  const [dashboard, setDashboard] = useState(null);
-  const [loading, setLoading] = useState(true);
+export default function AdminHomePage({ initialDashboard = null }) {
+  const [dashboard, setDashboard] = useState(initialDashboard);
+  const [loading, setLoading] = useState(!initialDashboard);
   const [topSortBy, setTopSortBy] = useState("qty");
 
   useEffect(() => {
+    if (initialDashboard) return;
+
     async function fetchDashboard() {
       try {
         const res = await fetch("/api/admin/dashboard");
@@ -45,7 +47,7 @@ export default function AdminHomePage() {
       }
     }
     fetchDashboard();
-  }, []);
+  }, [initialDashboard]);
 
   if (loading) {
     return <DashboardSkeleton />;
