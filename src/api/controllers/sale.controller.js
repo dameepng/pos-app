@@ -5,7 +5,10 @@ import {
   requireSaleId,
   validateCreateSaleBody,
 } from "@/api/validators/sale.validator";
-import { paySaleByCash } from "@/domain/payments/cashPayment.service";
+import {
+  createAndPaySaleByCash,
+  paySaleByCash,
+} from "@/domain/payments/cashPayment.service";
 import { createQrisPaymentForSale } from "@/domain/payments/qrisPayment.service";
 import {
   createSale,
@@ -115,10 +118,42 @@ export async function paySaleByCashHandler(req, _ctx, auth) {
     const data = await paySaleByCash({
       saleId,
       cashierId,
+      cashierName: auth?.user?.email || null,
       paidAmount,
     });
 
     return Response.json({ data }, { status: 200 });
+  } catch (err) {
+    return toHttpResponse(err);
+  }
+}
+
+export async function checkoutSaleByCashHandler(req, _ctx, auth) {
+  try {
+    const cashierId = auth?.user?.id;
+    if (!cashierId) {
+      return Response.json({ error: { message: "Unauthorized" } }, { status: 401 });
+    }
+
+    const body = await req.json();
+    const validation = validateCreateSaleBody(body);
+    if (validation.error) {
+      return Response.json(
+        { error: { message: validation.error.message } },
+        { status: validation.error.status }
+      );
+    }
+
+    const { paidAmount } = parseCashPaymentBody(body);
+    const data = await createAndPaySaleByCash({
+      cashierId,
+      cashierName: auth?.user?.email || null,
+      items: validation.value.items,
+      customerName: validation.value.customerName,
+      paidAmount,
+    });
+
+    return Response.json({ data }, { status: 201 });
   } catch (err) {
     return toHttpResponse(err);
   }

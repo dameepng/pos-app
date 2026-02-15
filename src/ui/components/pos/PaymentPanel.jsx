@@ -12,6 +12,20 @@ function formatRp(n) {
   return `Rp ${Number(n || 0).toLocaleString("id-ID")}`;
 }
 
+function normalizeReceiptSaleData(data, fallbackSaleId) {
+  if (!data) return null;
+
+  return {
+    saleId: data.saleId || fallbackSaleId || null,
+    createdAt: data.createdAt,
+    customerName: data.customerName || null,
+    cashierName: data.cashierName || data.cashier?.name || null,
+    items: Array.isArray(data.items) ? data.items : [],
+    total: Number(data.total || 0),
+    paymentMethod: data.paymentMethod || data.payments?.[0]?.method || "N/A",
+  };
+}
+
 export default function PaymentPanel({
   cartItems,
   total,
@@ -114,18 +128,23 @@ export default function PaymentPanel({
     paymentMethod,
     paidAmount,
     change,
+    saleData,
   }) => {
     try {
-      const [detail, latestTemplate] = await Promise.all([
-        fetchSaleDetail(saleId),
-        fetchReceiptTemplate().catch(() => receiptTemplate),
-      ]);
+      const latestTemplate =
+        receiptTemplate || (await fetchReceiptTemplate().catch(() => null));
 
-      if (latestTemplate) {
+      if (latestTemplate && !receiptTemplate) {
         setReceiptTemplate(latestTemplate);
       }
 
-      const totalAmount = Number(detail?.total || 0);
+      let resolvedSaleData = normalizeReceiptSaleData(saleData, saleId);
+      if (!resolvedSaleData) {
+        const detail = await fetchSaleDetail(saleId);
+        resolvedSaleData = normalizeReceiptSaleData(detail, saleId);
+      }
+
+      const totalAmount = Number(resolvedSaleData?.total || 0);
       const paid = Number.isFinite(paidAmount) ? paidAmount : totalAmount;
       const changeAmount =
         Number.isFinite(change) ? change : Math.max(0, paid - totalAmount);
@@ -137,14 +156,13 @@ export default function PaymentPanel({
         storePhone: latestTemplate?.storePhone || undefined,
         footerText: latestTemplate?.footerText || undefined,
         logoUrl: latestTemplate?.logoUrl || undefined,
-        saleId: detail?.saleId || saleId,
-        createdAt: detail?.createdAt,
-        customerName: detail?.customerName,
-        cashierName: detail?.cashier?.name,
-        items: detail?.items || [],
+        saleId: resolvedSaleData?.saleId || saleId,
+        createdAt: resolvedSaleData?.createdAt,
+        customerName: resolvedSaleData?.customerName,
+        cashierName: resolvedSaleData?.cashierName,
+        items: resolvedSaleData?.items || [],
         total: totalAmount,
-        paymentMethod:
-          paymentMethod || detail?.payments?.[0]?.method || "N/A",
+        paymentMethod: paymentMethod || resolvedSaleData?.paymentMethod || "N/A",
         paidAmount: paid,
         change: changeAmount,
       };
@@ -169,27 +187,56 @@ export default function PaymentPanel({
 
     setBusy(true);
     try {
-      const currentSale = await createSaleIfNeeded();
+      let paymentData = null;
+      let saleId = sale?.saleId || null;
 
-      const res = await fetch(`/api/sales/${currentSale.saleId}/pay-cash`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ paidAmount: paidNumber }),
-      });
+      if (saleId) {
+        const res = await fetch(`/api/sales/${saleId}/pay-cash`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ paidAmount: paidNumber }),
+        });
 
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error?.message || "Payment failed");
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error?.message || "Payment failed");
+        paymentData = json.data;
+        saleId = json.data?.saleId || saleId;
+      } else {
+        const cleanCustomerName = String(customerName || "").trim();
+        const res = await fetch("/api/sales/pay-cash", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            items: cartItems.map((it) => ({ productId: it.id, qty: it.qty })),
+            customerName: cleanCustomerName || null,
+            paidAmount: paidNumber,
+          }),
+        });
+
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error?.message || "Payment failed");
+        paymentData = json.data;
+        saleId = json.data?.saleId || null;
+      }
+
+      if (!saleId) throw new Error("Sale ID is missing from payment response");
+
+      const saleData = normalizeReceiptSaleData(
+        paymentData?.receipt,
+        saleId
+      );
 
       await prepareReceipt({
-        saleId: currentSale.saleId,
+        saleId,
         paymentMethod: "CASH",
         paidAmount: paidNumber,
-        change: Number(json.data?.change || 0),
+        change: Number(paymentData?.change || 0),
+        saleData,
       });
 
       showPaymentSuccessDialog({
         method: "CASH",
-        change: Number(json.data?.change || 0),
+        change: Number(paymentData?.change || 0),
       });
       onClear();
       onPaidSuccess?.();
@@ -283,9 +330,11 @@ export default function PaymentPanel({
         const json = await res.json();
 
         if (res.ok && json.data?.status === "PAID") {
+          const saleData = normalizeReceiptSaleData(json.data, pollSaleId);
           await prepareReceipt({
             saleId: pollSaleId,
             paymentMethod: "QRIS",
+            saleData,
           });
           showPaymentSuccessDialog({ method: "QRIS" });
           onClear();

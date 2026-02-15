@@ -12,12 +12,10 @@ export async function getSaleForPayment(tx, saleId) {
               id: true,
               name: true,
               isActive: true,
-              inventory: { select: { qtyOnHand: true } },
             },
           },
         },
       },
-      payments: true,
     },
   });
 }
