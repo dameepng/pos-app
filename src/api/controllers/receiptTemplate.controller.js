@@ -2,7 +2,10 @@ import { prisma } from "@/data/prisma/client";
 import { toHttpResponse } from "@/lib/errors/toHttpResponse";
 import { promises as fs } from "fs";
 import path from "path";
+import { unstable_cache } from "next/cache";
 import { optimizeImageUpload } from "@/lib/images/optimizeUpload";
+import { CACHE_TAGS } from "@/lib/cache/cacheTags";
+import { invalidateReceiptTemplateCache } from "@/lib/cache/invalidation";
 import {
   deleteFromSupabaseByPublicUrl,
   isSupabaseStorageEnabled,
@@ -18,6 +21,10 @@ const DEFAULT_TEMPLATE = {
   logoUrl:
     "https://www.designmantic.com/logo-images/166557.png?company=Company%20Name&keyword=retail&slogan=&verify=1",
 };
+const RECEIPT_TEMPLATE_CACHE_REVALIDATE_SEC = Math.max(
+  1,
+  Math.floor(Number(process.env.RECEIPT_TEMPLATE_CACHE_TTL_MS || 60000) / 1000)
+);
 
 function normalizeValue(value) {
   const text = String(value ?? "").trim();
@@ -50,20 +57,25 @@ async function getOrCreateTemplate() {
     return { ...DEFAULT_TEMPLATE, _needsPrismaGenerate: true };
   }
 
-  const existing = await delegate.findUnique({
+  return delegate.upsert({
     where: { id: "default" },
-  });
-
-  if (existing) return existing;
-
-  return delegate.create({
-    data: DEFAULT_TEMPLATE,
+    update: {},
+    create: DEFAULT_TEMPLATE,
   });
 }
 
+const getCachedReceiptTemplate = unstable_cache(
+  async () => getOrCreateTemplate(),
+  ["receipt-template-default"],
+  {
+    revalidate: RECEIPT_TEMPLATE_CACHE_REVALIDATE_SEC,
+    tags: [CACHE_TAGS.RECEIPT_TEMPLATE],
+  }
+);
+
 export async function getReceiptTemplateHandler() {
   try {
-    const data = await getOrCreateTemplate();
+    const data = await getCachedReceiptTemplate();
     if (data?._needsPrismaGenerate) {
       return Response.json(
         {
@@ -115,6 +127,7 @@ export async function updateReceiptTemplateHandler(req) {
         logoUrl: normalizeValue(body?.logoUrl),
       },
     });
+    invalidateReceiptTemplateCache();
 
     return Response.json({ data }, { status: 200 });
   } catch (err) {
@@ -195,6 +208,7 @@ export async function uploadReceiptLogoHandler(req) {
       where: { id: "default" },
       data: { logoUrl },
     });
+    invalidateReceiptTemplateCache();
 
     return Response.json({ data }, { status: 200 });
   } catch (err) {

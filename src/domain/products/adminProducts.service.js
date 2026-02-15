@@ -1,17 +1,19 @@
+import { unstable_cache } from "next/cache";
 import { prisma } from "@/data/prisma/client";
+import { CACHE_TAGS } from "@/lib/cache/cacheTags";
+import {
+  invalidateCatalogCaches,
+  invalidateCategoryCaches,
+} from "@/lib/cache/invalidation";
 
-const ADMIN_PRODUCTS_CACHE_TTL_MS = Number(process.env.ADMIN_PRODUCTS_CACHE_TTL_MS || 15000);
-const ADMIN_CATEGORIES_CACHE_TTL_MS = Number(process.env.ADMIN_CATEGORIES_CACHE_TTL_MS || 60000);
-
-const adminProductsCache = new Map();
-let adminCategoriesCache = {
-  value: null,
-  expiresAt: 0,
-};
-
-function now() {
-  return Date.now();
-}
+const ADMIN_PRODUCTS_CACHE_REVALIDATE_SEC = Math.max(
+  1,
+  Math.floor(Number(process.env.ADMIN_PRODUCTS_CACHE_TTL_MS || 15000) / 1000)
+);
+const ADMIN_CATEGORIES_CACHE_REVALIDATE_SEC = Math.max(
+  1,
+  Math.floor(Number(process.env.ADMIN_CATEGORIES_CACHE_TTL_MS || 60000) / 1000)
+);
 
 function buildAdminProductsWhere({ q, status, categoryId, stock }) {
   return {
@@ -30,26 +32,52 @@ function buildAdminProductsWhere({ q, status, categoryId, stock }) {
   };
 }
 
-function getProductsCacheKey(params) {
-  return JSON.stringify(params);
-}
+const listAdminProductsCached = unstable_cache(
+  async (serializedParams) => {
+    const normalized = JSON.parse(serializedParams);
+    const where = buildAdminProductsWhere(normalized);
 
-function getCachedProducts(key) {
-  const hit = adminProductsCache.get(key);
-  if (!hit) return null;
-  if (now() >= hit.expiresAt) {
-    adminProductsCache.delete(key);
-    return null;
+    const [items, total] = await Promise.all([
+      prisma.product.findMany({
+        where,
+        include: {
+          category: { select: { id: true, name: true } },
+          inventory: { select: { productId: true, qtyOnHand: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        take: normalized.take,
+        skip: normalized.skip,
+      }),
+      prisma.product.count({ where }),
+    ]);
+
+    return {
+      items,
+      total,
+      take: normalized.take,
+      skip: normalized.skip,
+    };
+  },
+  ["admin-products-list"],
+  {
+    revalidate: ADMIN_PRODUCTS_CACHE_REVALIDATE_SEC,
+    tags: [CACHE_TAGS.ADMIN_PRODUCTS],
   }
-  return hit.value;
-}
+);
 
-function setCachedProducts(key, value) {
-  adminProductsCache.set(key, {
-    value,
-    expiresAt: now() + ADMIN_PRODUCTS_CACHE_TTL_MS,
-  });
-}
+const listAdminCategoriesCached = unstable_cache(
+  async () => {
+    return prisma.category.findMany({
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    });
+  },
+  ["admin-categories-list"],
+  {
+    revalidate: ADMIN_CATEGORIES_CACHE_REVALIDATE_SEC,
+    tags: [CACHE_TAGS.ADMIN_CATEGORIES, CACHE_TAGS.PUBLIC_CATEGORIES],
+  }
+);
 
 export async function listAdminProducts(params) {
   const normalized = {
@@ -61,58 +89,14 @@ export async function listAdminProducts(params) {
     stock: (params?.stock || "").trim().toLowerCase(),
   };
 
-  const key = getProductsCacheKey(normalized);
-  const cached = getCachedProducts(key);
-  if (cached) return cached;
-
-  const where = buildAdminProductsWhere(normalized);
-
-  const [items, total] = await Promise.all([
-    prisma.product.findMany({
-      where,
-      include: {
-        category: { select: { id: true, name: true } },
-        inventory: { select: { productId: true, qtyOnHand: true } },
-      },
-      orderBy: { createdAt: "desc" },
-      take: normalized.take,
-      skip: normalized.skip,
-    }),
-    prisma.product.count({ where }),
-  ]);
-
-  const data = {
-    items,
-    total,
-    take: normalized.take,
-    skip: normalized.skip,
-  };
-  setCachedProducts(key, data);
-  return data;
+  return listAdminProductsCached(JSON.stringify(normalized));
 }
 
 export async function listAdminCategories() {
-  if (adminCategoriesCache.value && now() < adminCategoriesCache.expiresAt) {
-    return adminCategoriesCache.value;
-  }
-
-  const categories = await prisma.category.findMany({
-    select: { id: true, name: true },
-    orderBy: { name: "asc" },
-  });
-
-  adminCategoriesCache = {
-    value: categories,
-    expiresAt: now() + ADMIN_CATEGORIES_CACHE_TTL_MS,
-  };
-
-  return categories;
+  return listAdminCategoriesCached();
 }
 
 export function invalidateAdminProductsCaches() {
-  adminProductsCache.clear();
-  adminCategoriesCache = {
-    value: null,
-    expiresAt: 0,
-  };
+  invalidateCatalogCaches();
+  invalidateCategoryCaches();
 }

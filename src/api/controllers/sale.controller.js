@@ -19,6 +19,7 @@ import {
 import { AppError } from "@/lib/errors/AppError";
 import { ERROR_CODES } from "@/lib/errors/errorCodes";
 import { toHttpResponse } from "@/lib/errors/toHttpResponse";
+import { invalidatePostSaleCaches } from "@/lib/cache/invalidation";
 
 export async function createSaleHandler(req, _ctx, auth) {
   try {
@@ -121,6 +122,7 @@ export async function paySaleByCashHandler(req, _ctx, auth) {
       cashierName: auth?.user?.email || null,
       paidAmount,
     });
+    invalidatePostSaleCaches();
 
     return Response.json({ data }, { status: 200 });
   } catch (err) {
@@ -152,6 +154,7 @@ export async function checkoutSaleByCashHandler(req, _ctx, auth) {
       customerName: validation.value.customerName,
       paidAmount,
     });
+    invalidatePostSaleCaches();
 
     return Response.json({ data }, { status: 201 });
   } catch (err) {

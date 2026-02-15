@@ -1,4 +1,11 @@
 import { prisma } from "../prisma/client.js";
+import { unstable_cache } from "next/cache";
+import { CACHE_TAGS } from "@/lib/cache/cacheTags";
+
+const PUBLIC_PRODUCTS_CACHE_REVALIDATE_SEC = Math.max(
+  1,
+  Math.floor(Number(process.env.PUBLIC_PRODUCTS_CACHE_TTL_MS || 10000) / 1000)
+);
 
 function normalizePage(page) {
   return Math.max(1, Number(page) || 1);
@@ -133,27 +140,51 @@ export async function findPaginatedActiveProducts({
 }) {
   const normalizedPage = normalizePage(page);
   const normalizedLimit = normalizeLimit(limit);
-  const skip = (normalizedPage - 1) * normalizedLimit;
-  const where = buildActiveProductsWhere({ q, categoryId });
+  const serializedParams = JSON.stringify({
+    q: String(q || "").trim(),
+    categoryId: categoryId || null,
+    page: normalizedPage,
+    limit: normalizedLimit,
+  });
 
-  const [items, totalItems] = await Promise.all([
-    prisma.product.findMany({
-      where,
-      orderBy: [{ name: "asc" }],
-      skip,
-      take: normalizedLimit,
-      select: {
-        id: true,
-        name: true,
-        barcode: true,
-        sku: true,
-        price: true,
-        imageUrl: true,
-        inventory: { select: { qtyOnHand: true } },
-      },
-    }),
-    prisma.product.count({ where }),
-  ]);
-
-  return { items, totalItems, page: normalizedPage, limit: normalizedLimit };
+  return findPaginatedActiveProductsCached(serializedParams);
 }
+
+const findPaginatedActiveProductsCached = unstable_cache(
+  async (serializedParams) => {
+    const params = JSON.parse(serializedParams);
+    const normalizedPage = normalizePage(params.page);
+    const normalizedLimit = normalizeLimit(params.limit);
+    const skip = (normalizedPage - 1) * normalizedLimit;
+    const where = buildActiveProductsWhere({
+      q: params.q,
+      categoryId: params.categoryId,
+    });
+
+    const [items, totalItems] = await Promise.all([
+      prisma.product.findMany({
+        where,
+        orderBy: [{ name: "asc" }],
+        skip,
+        take: normalizedLimit,
+        select: {
+          id: true,
+          name: true,
+          barcode: true,
+          sku: true,
+          price: true,
+          imageUrl: true,
+          inventory: { select: { qtyOnHand: true } },
+        },
+      }),
+      prisma.product.count({ where }),
+    ]);
+
+    return { items, totalItems, page: normalizedPage, limit: normalizedLimit };
+  },
+  ["public-products-paginated"],
+  {
+    revalidate: PUBLIC_PRODUCTS_CACHE_REVALIDATE_SEC,
+    tags: [CACHE_TAGS.PUBLIC_PRODUCTS],
+  }
+);
