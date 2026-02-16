@@ -101,6 +101,8 @@ model Product {
 
   @@index([name])
   @@index([categoryId])
+  @@index([createdAt])
+  @@index([isActive, categoryId, createdAt])
 }
 
 model Inventory {
@@ -110,6 +112,8 @@ model Inventory {
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   updatedAt DateTime @updatedAt
+
+  @@index([qtyOnHand])
 }
 
 model Sale {
@@ -129,6 +133,7 @@ model Sale {
 
   @@index([cashierId, createdAt])
   @@index([status, createdAt])
+  @@index([createdAt])
 }
 
 model SaleItem {
@@ -145,6 +150,7 @@ model SaleItem {
 
   @@index([saleId])
   @@index([productId])
+  @@index([saleId, productId])
 }
 
 model Payment {
@@ -168,6 +174,7 @@ model Payment {
   updatedAt DateTime @updatedAt
 
   @@index([saleId])
+  @@index([saleId, createdAt])
   @@index([provider, providerRef])
   @@index([status, createdAt])
 }
