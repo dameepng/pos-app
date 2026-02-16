@@ -583,7 +583,7 @@ Need help? Here are some resources:
 
 **Your Name**
 - GitHub: [@dameepng](https://github.com/dameepng)
-- LinkedIn: [Your LinkedIn Profile](https://linkedin.com/in/yourprofile)
+- LinkedIn: [Your LinkedIn Profile]([https://linkedin.com/in/yourprofile](https://www.linkedin.com/in/ahmad-damanhuri/))
 
 ## License
 
