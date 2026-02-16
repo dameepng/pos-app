@@ -187,7 +187,7 @@ The seeding process creates default accounts for testing (development mode only)
 
 ### Owner / Admin
 - **Email**: `damee@png.id`
-- **Password**: `Password123`
+- **Password**: `password123`
 - **Access**: Full admin dashboard, product management, user management, settings
 
 ### Cashier
