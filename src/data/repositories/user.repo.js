@@ -9,6 +9,7 @@ export async function findAuthUserByEmail(email) {
     where: { email },
     select: {
       id: true,
+      name: true,
       email: true,
       role: true,
       passwordHash: true,
@@ -32,11 +33,11 @@ export async function createUser(data) {
 export async function listUsers({ q = "", take = 50, skip = 0 } = {}) {
   const where = q
     ? {
-        OR: [
-          { name: { contains: q, mode: "insensitive" } },
-          { email: { contains: q, mode: "insensitive" } },
-        ],
-      }
+      OR: [
+        { name: { contains: q, mode: "insensitive" } },
+        { email: { contains: q, mode: "insensitive" } },
+      ],
+    }
     : {};
 
   const [items, total] = await Promise.all([

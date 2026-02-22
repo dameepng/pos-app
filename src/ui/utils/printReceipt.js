@@ -169,62 +169,62 @@ export function printReceipt({
     <meta charset="utf-8" />
     <title>Struk</title>
     <style>
-      @page { size: ${normalizedPaperWidth} auto; margin: 6mm; }
+      @page { size: ${normalizedPaperWidth} auto; margin: 4mm; }
       * { box-sizing: border-box; }
       body {
         margin: 0;
         width: ${normalizedPaperWidth};
         font-family: "Courier New", monospace;
-        color: #111;
+        color: #000;
+        font-weight: 600;
+        -webkit-print-color-adjust: exact;
       }
       .logo {
         display: block;
-        margin: 0 auto 6px;
-        max-width: 42mm;
-        max-height: 24mm;
+        margin: 0 auto 2px;
+        max-width: 54mm;
+        max-height: 32mm;
         object-fit: contain;
+        filter: grayscale(1) contrast(2);
       }
       .center { text-align: center; }
-      .muted { color: #666; }
+      .muted { color: #000; font-weight: 500; }
       .section { margin-top: 10px; }
-      .divider { border-top: 1px dashed #999; margin: 10px 0; }
-      h1 { font-size: 16px; margin: 0 0 4px; }
-      .meta { font-size: 11px; line-height: 1.4; }
-      table { width: 100%; border-collapse: collapse; font-size: 11px; }
-      th { text-align: left; padding: 4px 0; border-bottom: 1px solid #ddd; }
-      td { padding: 4px 0; vertical-align: top; }
+      .divider { border-top: 2px dashed #000; margin: 10px 0; }
+      h1 { font-size: 20px; margin: 0 0 4px; font-weight: 900; text-transform: uppercase; line-height: 1.1; }
+      .meta { font-size: 12px; line-height: 1.4; font-weight: 700; }
+      table { width: 100%; border-collapse: collapse; font-size: 12px; }
+      th { text-align: left; padding: 6px 0; border-bottom: 2px solid #000; font-weight: 900; }
+      td { padding: 6px 0; vertical-align: top; font-weight: 700; }
       .item-qty, .item-price, .item-subtotal { text-align: right; white-space: nowrap; }
-      .totals { font-size: 12px; }
-      .totals-row { display: flex; justify-content: space-between; margin: 3px 0; }
-      .footer { font-size: 11px; margin-top: 12px; }
+      .totals { font-size: 14px; font-weight: 900; }
+      .totals-row { display: flex; justify-content: space-between; margin: 4px 0; }
+      .footer { font-size: 12px; margin-top: 12px; font-weight: 700; }
       .barcode { margin-top: 8px; text-align: center; }
       .barcode-box {
         width: ${normalizedBarcodeBoxWidth};
         margin: 0 auto;
         padding: 2mm 0;
-        border-top: 1px dashed #bbb;
-        border-bottom: 1px dashed #bbb;
+        border-top: 2px dashed #000;
+        border-bottom: 2px dashed #000;
       }
       .barcode svg {
         display: block;
         width: 100%;
         height: 38px;
       }
-      .address { font-size: 11px; line-height: 1.35; }
+      .address { font-size: 12px; line-height: 1.35; font-weight: 600; }
     </style>
   </head>
   <body>
     <div class="center">
       ${logoUrl ? `<img class="logo" src="${escapeHtml(logoUrl)}" alt="Logo" />` : ""}
       <h1>${escapeHtml(storeName)}</h1>
-      <div class="meta muted">Struk Pembayaran</div>
-      ${
-        storeAddress || storePhone
-          ? `<div class="address muted">${escapeHtml(storeAddress)}${
-              storeAddress && storePhone ? "<br/>" : ""
-            }${escapeHtml(storePhone)}</div>`
-          : ""
-      }
+      ${storeAddress || storePhone
+      ? `<div class="address muted">${escapeHtml(storeAddress)}${storeAddress && storePhone ? "<br/>" : ""
+      }${escapeHtml(storePhone)}</div>`
+      : ""
+    }
     </div>
 
     <div class="section meta">
@@ -261,12 +261,11 @@ export function printReceipt({
 
     <div class="divider"></div>
 
-    ${
-      barcodeSvg
-        ? `<div class="barcode"><div class="barcode-box">${barcodeSvg}</div><div class="meta muted">${escapeHtml(
-            barcodeText
-          )}</div></div><div class="divider"></div>`
-        : ""
+    ${barcodeSvg
+      ? `<div class="barcode"><div class="barcode-box">${barcodeSvg}</div><div class="meta muted">${escapeHtml(
+        barcodeText
+      )}</div></div><div class="divider"></div>`
+      : ""
     }
 
     <div class="center footer muted">

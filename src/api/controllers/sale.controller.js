@@ -119,7 +119,7 @@ export async function paySaleByCashHandler(req, _ctx, auth) {
     const data = await paySaleByCash({
       saleId,
       cashierId,
-      cashierName: auth?.user?.email || null,
+      cashierName: auth?.user?.name || auth?.user?.email || null,
       paidAmount,
     });
     invalidatePostSaleCaches();
@@ -149,7 +149,7 @@ export async function checkoutSaleByCashHandler(req, _ctx, auth) {
     const { paidAmount } = parseCashPaymentBody(body);
     const data = await createAndPaySaleByCash({
       cashierId,
-      cashierName: auth?.user?.email || null,
+      cashierName: auth?.user?.name || auth?.user?.email || null,
       items: validation.value.items,
       customerName: validation.value.customerName,
       paidAmount,

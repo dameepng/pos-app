@@ -70,12 +70,13 @@ export async function loginWithEmailPassword({ email, password }) {
 
   const token = await signSession({
     sub: user.id,
+    name: user.name,
     email: user.email,
     role: user.role,
     branchId: user.branchId,
   });
 
-  return { token, user: { id: user.id, email: user.email, role: user.role, branchId: user.branchId } };
+  return { token, user: { id: user.id, name: user.name, email: user.email, role: user.role, branchId: user.branchId } };
 }
 
 export const getAuthUserFromRequest = cache(async function getAuthUserFromRequest() {
@@ -86,6 +87,7 @@ export const getAuthUserFromRequest = cache(async function getAuthUserFromReques
     const payload = await verifySession(token);
     return {
       id: payload.sub,
+      name: payload.name || null,
       email: payload.email,
       role: payload.role,
       branchId: payload.branchId,
