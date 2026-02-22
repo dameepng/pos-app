@@ -111,6 +111,28 @@ export default function UsersAdminPage({ initialUser = null }) {
     }
   }
 
+  async function deleteUser(id) {
+    if (!confirm("Apakah Anda yakin ingin menghapus user ini?")) return;
+    setBusy(true);
+    setError(null);
+
+    try {
+      const res = await fetch(`/api/admin/users/${id}`, {
+        method: "DELETE",
+      });
+
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error?.message || "Failed delete user");
+
+      if (id === selected?.id) resetForm();
+      await loadUsers({ skip: data.skip });
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-1 space-y-4">
@@ -232,7 +254,9 @@ export default function UsersAdminPage({ initialUser = null }) {
             >
               <option value="CASHIER">CASHIER</option>
               <option value="OPS">OPS</option>
-              <option value="OWNER">OWNER</option>
+              {selected?.role === "OWNER" && (
+                <option value="OWNER">OWNER</option>
+              )}
             </select>
 
             <label className="block text-xs font-medium text-zinc-600">
@@ -331,12 +355,22 @@ export default function UsersAdminPage({ initialUser = null }) {
                         {u.mustChangePassword ? "Yes" : "No"}
                       </td>
                       <td className="px-5 py-4 text-right">
-                        <button
-                          onClick={() => edit(u)}
-                          className="text-xs font-medium text-blue-600 hover:text-blue-700"
-                        >
-                          Edit
-                        </button>
+                        <div className="flex justify-end gap-3">
+                          <button
+                            onClick={() => edit(u)}
+                            className="rounded-lg border px-3 py-1 text-sm hover:bg-zinc-50"
+                          >
+                            Edit
+                          </button>
+                          {u.id !== currentUser?.id && (
+                            <button
+                              onClick={() => deleteUser(u.id)}
+                              className="rounded-lg border border-red-200 bg-red-50 px-3 py-1 text-sm font-medium text-red-700 hover:bg-red-100"
+                            >
+                              Delete
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))

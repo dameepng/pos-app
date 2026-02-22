@@ -60,3 +60,6 @@ export async function listUsers({ q = "", take = 50, skip = 0 } = {}) {
 
   return { items, total, take, skip };
 }
+export async function deleteUserById(id) {
+  return prisma.user.delete({ where: { id } });
+}

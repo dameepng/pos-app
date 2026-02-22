@@ -1,4 +1,4 @@
-import { adminCreateUser, adminUpdateUser } from "@/domain/auth/auth.service";
+import { adminCreateUser, adminDeleteUser, adminUpdateUser } from "@/domain/auth/auth.service";
 import {
   validateAdminCreateUserBody,
   validateAdminUpdateUserBody,
@@ -74,6 +74,25 @@ export async function adminCreateUserHandler(req) {
     });
 
     return Response.json({ data }, { status: 201 });
+  } catch (err) {
+    return toHttpResponse(err);
+  }
+}
+
+export async function adminDeleteUserHandler(req, { params }, auth) {
+  try {
+    const { id } = await params;
+    const actorId = auth?.user?.id;
+
+    if (actorId && actorId === id) {
+      return Response.json(
+        { error: { message: "You cannot delete yourself" } },
+        { status: 400 }
+      );
+    }
+
+    await adminDeleteUser(id);
+    return Response.json({ ok: true }, { status: 200 });
   } catch (err) {
     return toHttpResponse(err);
   }

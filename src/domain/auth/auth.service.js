@@ -2,6 +2,7 @@ import { cache } from "react";
 import bcrypt from "bcryptjs";
 import {
   createUser,
+  deleteUserById,
   findAuthUserByEmail,
   findUserByEmail,
   findUserById,
@@ -185,4 +186,10 @@ export async function adminCreateUser({ name, email, role, password }) {
     role: created.role,
     mustChangePassword: created.mustChangePassword,
   };
+}
+
+export async function adminDeleteUser(userId) {
+  await deleteUserById(userId);
+  clearCachedLoginUsers();
+  return { ok: true };
 }
