@@ -220,6 +220,18 @@
   box-shadow: 0 12px 32px rgba(16, 185, 129, 0.4);
 }
 
+.downloadButton {
+  color: #0f172a;
+  background: white;
+  border: 1px solid #e2e8f0 !important;
+}
+
+.downloadButton:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1 !important;
+  transform: translateY(-2px);
+}
+
 @media (max-width: 640px) {
   .modalPanel {
     padding: 40px 24px;

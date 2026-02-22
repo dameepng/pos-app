@@ -449,6 +449,7 @@ export default function PaymentPanel({
         changeText={formatRp(successDialog.change || 0)}
         transactionId={lastReceipt?.saleId}
         createdAt={lastReceipt?.createdAt}
+        rawData={lastReceipt}
       />
     </div>
   );

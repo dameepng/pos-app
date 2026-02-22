@@ -1,7 +1,6 @@
-"use client";
-
-import { CircleCheck } from "lucide-react";
+import { CircleCheck, FileDown } from "lucide-react";
 import AppDialog from "@/ui/components/common/AppDialog";
+import { downloadInvoice } from "@/ui/utils/downloadInvoice";
 import styles from "./PaymentSuccessDialog.module.css";
 
 function formatDateTime(value) {
@@ -30,7 +29,13 @@ export default function PaymentSuccessDialog({
   changeText,
   transactionId,
   createdAt,
+  rawData,
 }) {
+  const handleDownloadInvoice = async () => {
+    if (!rawData) return;
+    await downloadInvoice(rawData);
+  };
+
   return (
     <AppDialog
       open={open}
@@ -81,6 +86,16 @@ export default function PaymentSuccessDialog({
             className={`${styles.button} ${styles.cancelButton}`}
           >
             Tutup
+          </button>
+          <button
+            type="button"
+            onClick={handleDownloadInvoice}
+            disabled={!rawData}
+            className={`${styles.button} ${styles.downloadButton}`}
+            style={{ display: "flex", alignItems: "center", gap: "6px" }}
+          >
+            <FileDown size={16} />
+            Download
           </button>
           <button
             type="button"
