@@ -83,32 +83,29 @@ cd pos-app
 
 ### 2. Install Dependencies
 
-Install the necessary Node.js packages:
-
 ```bash
 npm install
 ```
 
+> **Note**: You may see vulnerability warnings related to ESLint during installation. This is expected and does not affect the application. Do **not** run `npm audit fix --force` as it will break the project dependencies.
+
 ### 3. Environment Configuration
 
-Copy the example environment file to create your local configuration:
-
 ```bash
-cp .env.example .env.local
+cp .env.example .env
 ```
 
-Open the `.env.local` file and update the configuration as needed. The default values are set up to work with the provided Docker Compose configuration.
+Open the `.env` file and generate a secure JWT secret:
 
-**Important**: Generate a secure JWT secret:
 ```bash
 node -e "console.log(require('crypto').randomBytes(64).toString('base64'))"
 ```
 
-Copy the output and replace the `AUTH_JWT_SECRET` value in your `.env.local` file.
+Copy the output and replace the `AUTH_JWT_SECRET` value in your `.env` file.
 
-### 4. Setup Database
+### 4. Start the Database
 
-Start the PostgreSQL database using Docker Compose:
+Make sure Docker Desktop is running, then:
 
 ```bash
 docker compose up -d
@@ -116,35 +113,14 @@ docker compose up -d
 
 This will spin up a PostgreSQL container accessible at port `15432`.
 
-**Verify database is running:**
-```bash
-docker ps
-# You should see a container with postgres:15 image
-```
-
-### 5. Database Migration & Seeding
-
-Run the Prisma migrations to set up the database schema:
+### 5. Run Database Migration & Seeding
 
 ```bash
 npx prisma migrate dev
-```
-
-Seed the database with initial data (default users, categories, products):
-
-```bash
 npm run prisma:seed
 ```
 
-This will create:
-- Default admin and cashier accounts
-- Sample categories (Beverages, Snacks, etc.)
-- Sample products with barcodes
-- Receipt template
-
 ### 6. Run the Application
-
-Start the Next.js development server:
 
 ```bash
 npm run dev
@@ -156,7 +132,7 @@ The application will be available at [http://localhost:3000](http://localhost:30
 
 ### Environment Variables
 
-Create a `.env.local` file based on `.env.example`:
+Create a `.env` file based on `.env.example`:
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
@@ -183,14 +159,14 @@ The `docker-compose.yml` configures:
 - **Database**: `pos_db`
 - **Data persistence** via Docker volume `postgres_data`
 
-To change database credentials, update both `docker-compose.yml` and `DATABASE_URL` in `.env.local`.
+To change database credentials, update both `docker-compose.yml` and `DATABASE_URL` in `.env`.
 
 ## Default Accounts
 
 The seeding process creates default accounts for testing (development mode only):
 
 ### Owner / Admin
-- **Email**: `damee@png.id`
+- **Email**: `owner@local.test`
 - **Password**: `password123`
 - **Access**: Full admin dashboard, product management, user management, settings
 
